@@ -1,6 +1,13 @@
 // 1. CallFrame
 // 2. OpcodeStates
 
+// input
+export type StructLog = {
+    op: string
+    depth: number
+    gasCost: number
+}
+
 // output
 export type CallFrame = {
     id: string
@@ -15,11 +22,3 @@ export type OpcodeStats = {
     counts: Record<string, number>
     gas: Record<string, number>
 }
-
-// input
-export type StructLog = {
-    op: string
-    depth: number
-    gasCost: number
-}
-

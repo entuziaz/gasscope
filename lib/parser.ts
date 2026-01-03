@@ -1,39 +1,84 @@
-// 1. implement algorithm
-// input: structLogs[]
-// output: CallFrame tree
+import { OpcodeStats, CallFrame, StructLog } from "./types"
 
-// Step 1: initalize state before reading logs:
-//  1. create an empty stack: callStack
-//  2. create a root frame:
-//      depth = 0
-//      gasUsed = 0
-//  3. push root frame onto stack
 
-// Step 2: Iterate through structLogs IN ORDER. For each opcode log:
-//  2.1. Handle depth changes: compare currentLog.depth and topOfStack.depth
-//      Case A: Same depth:
-            // - Still in same call frame
-            // - Continue
-//      Case B: Depth increased
-            // - A `CALL`-like opcode just happened
-            // - A new call frame begins
-            // Action:
-            //  - Create new CallFrame
-            //  - Set its depth
-            //  - Push it onto `callStack`
-            //  - Attach it as child of previous frame
-//      Case C: Depth decreased: One or more calls returned: this alone builds the call tree 
-            //  - Pop frames until depths match
-            //  - Continue execution in parent frame
+function emptyOpcodeStats(): OpcodeStats {
+  return {
+    counts: {},
+    gas: {},
+  }
+}
 
-//  2.2. Sttribute gas: for the currrent frame (top of stack):
-        // fame.gasUsed += log.gasCost
+function inferFrameName(): string {
+  return "CALL"
+}
 
-//  2.3. Record opcode info (optionl)
+export function parseTrace(structLogs: StructLog[]): CallFrame {
+  // --- Step 1: Initialization ---
+  const rootFrame: CallFrame = {
+    id: "0",
+    depth: 0,
+    name: "ROOT",
+    gasUsed: 0,
+    opcodes: emptyOpcodeStats(),
+    children: [],
+  }
 
-// Step 3: End result: after processing all logs, you have:
-    // A call tree with:
-        // exact gas per frame
-        // nested children
-        // opcode-level detail
+  const stack: CallFrame[] = []
+  stack.push(rootFrame)
 
+  let prevDepth = 0
+  let frameIdCounter = 1
+
+  // --- Step 2: Process logs sequentially ---
+  for (const log of structLogs) {
+    const currDepth = log.depth
+
+    // --- ENTER: new call frame ---
+    if (currDepth > prevDepth) {
+      if (currDepth !== prevDepth + 1) {
+        throw new Error(
+          `Invalid depth jump: ${prevDepth} -> ${currDepth}`
+        )
+      }
+
+      const parent = stack[stack.length - 1]
+
+      const newFrame: CallFrame = {
+        id: String(frameIdCounter++),
+        depth: currDepth,
+        name: inferFrameName(),
+        gasUsed: 0,
+        opcodes: emptyOpcodeStats(),
+        children: [],
+      }
+
+      parent.children.push(newFrame)
+      stack.push(newFrame)
+    }
+
+    // --- EXIT: return from call(s) ---
+    else if (currDepth < prevDepth) {
+      while (stack.length > 0 && stack[stack.length - 1].depth > currDepth) {
+        stack.pop()
+      }
+    }
+
+    // --- EXECUTE: attribute gas ---
+    const currentFrame = stack[stack.length - 1]
+
+    // Attribute opcode gas to the currently executing frame
+    currentFrame.gasUsed += log.gasCost
+
+    // opcode count
+    currentFrame.opcodes.counts[log.op] =
+      (currentFrame.opcodes.counts[log.op] ?? 0) + 1
+
+    // opcode gas
+    currentFrame.opcodes.gas[log.op] =
+      (currentFrame.opcodes.gas[log.op] ?? 0) + log.gasCost
+
+    prevDepth = currDepth
+  }
+
+  return rootFrame
+}

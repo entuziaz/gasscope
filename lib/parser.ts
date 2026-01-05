@@ -14,6 +14,9 @@ function emptyOpcodeStats(): OpcodeStats {
  * IMPORTANT:
  * - This function must be called with the opcode that CAUSED
  *   the depth increase (i.e. the opcode executed in the parent frame).
+ * - This version ignores addresses and focuses on structure
+ * - TODO: Call target addresses (CALL/DELEGATECALL/CREATE)
+ *   can be inferred by inspecting the EVM stack at this point.
  *
  * @param callOpcode Opcode that triggered the depth increase
  */
@@ -26,6 +29,7 @@ function inferFrameName(callOpcode: string): string {
       return callOpcode
     default:
       return "INTERNAL"
+      // TO-DO: add CREATE/CREATE2 and others that cause depth changes
   }
 }
 
@@ -102,6 +106,9 @@ export function parseTrace(structLogs: StructLog[]): CallFrame {
         }
 
         // --- EXECUTE: attribute gas ---
+        if (stack.length === 0) {
+            throw new Error("Call stack unexpectedly empty")
+        }
         const currentFrame = stack[stack.length - 1]
 
         // Attribute opcode gas to the currently executing frame
@@ -118,6 +125,12 @@ export function parseTrace(structLogs: StructLog[]): CallFrame {
         // update state
         prevDepth = currDepth
         prevLog = log
+    }
+
+    if (stack.length !== 1) {
+        throw new Error(
+            `Unbalanced call stack at end of trace (depth=${stack.length})`
+        )
     }
 
     return rootFrame

@@ -7,12 +7,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 GasScope is a visual gas profiler that pinpoints exactly where gas is being spent inside a complex transaction. It solves the critical problem of gas optimization, which is currently a "guess-and-check" process. Users submit a transaction hash, and GasScope generates a "flame graph" showing the gas cost of every internal function call. It’s the Tx-Ray for performance, enabling developers to build highly efficient and cost-effective dApps on Rootstock.
 
 ### Intended Scope:
-- [] Develop a backend service that uses the debug_traceTransaction RPC method, focusing on the gasCost for each step. 
+- [ ] Develop a backend service that uses the debug_traceTransaction RPC method, focusing on the gasCost for each step. 
 - [x] Implement a parser to aggregate the gas costs per function call, building a tree-like data structure of the transaction's execution path. 
-- [] Build a React frontend that accepts a transaction hash (or can be linked from Tx-Ray). 
-- [] The UI will render the gas data as an interactive flame graph, allowing developers to instantly spot the most expensive function calls. 
-- [] Display a simple "cost-by-opcode" breakdown to identify low-level gas sinks (e.g., SSTORE, LOG, CREATE). 
-- [] Deploy as an open-source tool for the entire Rootstock developer community.
+- [ ] Build a React frontend that accepts a transaction hash (or can be linked from Tx-Ray). 
+- [ ] The UI will render the gas data as an interactive flame graph, allowing developers to instantly spot the most expensive function calls. 
+- [ ] Display a simple "cost-by-opcode" breakdown to identify low-level gas sinks (e.g., SSTORE, LOG, CREATE). 
+- [ ] Deploy as an open-source tool for the entire Rootstock developer community.
 
 
 ### Starting Folder Structure:

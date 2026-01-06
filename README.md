@@ -66,3 +66,8 @@ You should get something like:
 }
 ```
 
+To run tests:
+
+```bash
+pnpm test
+```

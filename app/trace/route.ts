@@ -2,6 +2,7 @@ import { toFlameTree } from "@/lib/flame"
 import { parseTrace } from "@/lib/parser"
 import { NextRequest, NextResponse } from "next/server"
 import { StructLog } from "@/lib/types"
+import { aggregateOpcodes } from "@/lib/aggregate"
 
 type DebugTraceResponse = {
     jsonrpc: string
@@ -93,14 +94,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === "raw") {
-        return NextResponse.json({ structLogs })
+        return NextResponse.json({ 
+            mode: "raw",
+            structLogs 
+        })
     }
 
     const callTree = parseTrace(structLogs)
     const flameTree = toFlameTree(callTree)
+    const OpcodeStats = aggregateOpcodes(callTree)
 
     return NextResponse.json({
+        mode: "flame",
         root: flameTree,
+        opcodes: OpcodeStats,
     })
 
 }

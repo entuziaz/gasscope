@@ -1,10 +1,13 @@
+import { toFlameTree } from "@/lib/flame"
+import { parseTrace } from "@/lib/parser"
 import { NextRequest, NextResponse } from "next/server"
+import { StructLog } from "@/lib/types"
 
 type DebugTraceResponse = {
     jsonrpc: string
     id: number
     result?: {
-        structLogs: any[]
+        structLogs: StructLog[]
     }
     error?: {
         code: number
@@ -26,7 +29,7 @@ type DebugTraceResponse = {
  */
 
 export async function POST(req: NextRequest) {
-    const { txHash } = await req.json()
+    const { txHash, mode = "flame" } = await req.json()
 
     if (!txHash || typeof txHash !== "string") {
         return NextResponse.json(
@@ -34,6 +37,16 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         )
     }
+
+    const allowedModes = new Set(["raw", "flame"])
+
+    if (mode && !allowedModes.has(mode)) {
+        return NextResponse.json(
+            { error: `Invalid mode: ${mode}` },
+            { status: 400 }
+        )
+    }
+
 
     const rpcUrl = process.env.RSK_RPC_URL ??  "http://localhost:4444"
 
@@ -70,6 +83,24 @@ export async function POST(req: NextRequest) {
         )
     }
 
-  return NextResponse.json(rpcResponse.result)
+    const structLogs = rpcResponse.result?.structLogs
+
+    if(!structLogs) {
+        return NextResponse.json(
+            { error: "No structLogs in trace response" },
+            { status: 500 }
+        )
+    }
+
+    if (mode === "raw") {
+        return NextResponse.json({ structLogs })
+    }
+
+    const callTree = parseTrace(structLogs)
+    const flameTree = toFlameTree(callTree)
+
+    return NextResponse.json({
+        root: flameTree,
+    })
 
 }

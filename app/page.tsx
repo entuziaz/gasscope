@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
-import { FlameNode } from "@/lib/flame"
+import { FlameNode, opcodeGasToFlame } from "@/lib/flame"
 
 export default function Home() {
   const [root, setRoot] = useState<FlameNode | null>(null)
@@ -19,7 +19,9 @@ export default function Home() {
     })
 
     const data = await res.json()
-    setRoot(data.root)
+    // setRoot(data.root)
+    const flameRoot = opcodeGasToFlame(data.opcodes.gas)
+    setRoot(flameRoot)
   }
 
   return (

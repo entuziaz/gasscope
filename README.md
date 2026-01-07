@@ -66,8 +66,76 @@ You should get something like:
 }
 ```
 
+or:
+
+```bash
+{
+  "mode": "flame",
+  "root": {
+    "name": "ROOT",
+    "value": 1108639
+  },
+  "opcodes": {
+    "counts": {
+      "PUSH1": 206,
+      "MSTORE": 1,
+      "CALLVALUE": 1,
+      "DUP1": 804,
+      "ISZERO": 403,
+      "PUSH2": 1817,
+      "JUMPI": 407,
+      "JUMPDEST": 1616,
+      "POP": 2814,
+      "CALLDATASIZE": 2,
+      "LT": 202,
+      "PUSH0": 1007,
+      "CALLDATALOAD": 2,
+      "SHR": 1,
+      "PUSH4": 2,
+      "EQ": 3,
+      "SUB": 2,
+      "DUP2": 1008,
+      "ADD": 402,
+      "SWAP1": 1406,
+      "SWAP2": 1205,
+      "JUMP": 1410,
+      "DUP3": 1202,
+      "DUP5": 2,
+      "SLT": 1,
+      "DUP6": 1,
+      "SWAP3": 602,
+      "SLOAD": 200,
+      "DUP4": 200,
+      "GT": 200,
+      "SSTORE": 200,
+      "STOP": 1
+    },
+  }
+}
+
+```
+
 To run tests:
 
 ```bash
 pnpm test
 ```
+
+Flamegraph Nodes:
+A flame graph is uses nested flexboxes to represent:
+- X-axis → proportional to value (gas)
+- Y-axis → call depth
+- Children sit on top of parents
+- Siblings sit side-by-side
+
+So every node renders:
+
+```text
+┌──────────────────────────────┐
+│ CALL (400k gas)               │  ← width proportional to value
+│ ┌──────────────┐ ┌─────────┐ │
+│ │ CALL (250k)  │ │ CALL(150│ │
+│ └──────────────┘ └─────────┘ │
+└──────────────────────────────┘
+```
+

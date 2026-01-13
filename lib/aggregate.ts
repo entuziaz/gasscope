@@ -18,7 +18,7 @@ export function aggregateOpcodes(frame: CallFrame): OpcodeStats {
 
   function visit(node: CallFrame) {
     // Merge this frame's opcode stats
-    for (const [op, count] of Object.entries(node.opcodes.counts)) {
+    for (const [op, count] of Object.entries(node.opcodes.counts ?? {})) {
       result.counts[op] = (result.counts[op] ?? 0) + count
     }
 

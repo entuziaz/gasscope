@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
         })
 
         rpcResponse = await res.json()
+        console.log("RPC RESPONSE:", rpcResponse)
     } catch (err) {
         return NextResponse.json(
             { error: "Failed to reach RPC node" },

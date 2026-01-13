@@ -19,7 +19,7 @@ This repo is a [Next.js](https://nextjs.org) project bootstrapped with [`create-
 ### Intended Scope:
 - [x] Develop a backend service that uses the debug_traceTransaction RPC method, focusing on the gasCost for each step. 
 - [x] Implement a parser to aggregate the gas costs per function call, building a tree-like data structure of the transaction's execution path. 
-- [ ] Build a React frontend that accepts a transaction hash (or can be linked from Tx-Ray). 
+- [x] Build a React frontend that accepts a transaction hash (or can be linked from Tx-Ray). 
 - [ ] The UI will render the gas data as an interactive flame graph, allowing developers to instantly spot the most expensive function calls. 
 - [ ] Display a simple "cost-by-opcode" breakdown to identify low-level gas sinks (e.g., SSTORE, LOG, CREATE). 
 - [ ] Deploy as an open-source tool for the entire Rootstock developer community.
@@ -140,9 +140,9 @@ A flame graph is uses nested flexboxes to represent:
 
 So every node renders:
 
-```text
+```
 ┌──────────────────────────────┐
-│ CALL (400k gas)               │  ← width proportional to value
+│ CALL (400k gas)              │  ← width proportional to value
 │ ┌──────────────┐ ┌─────────┐ │
 │ │ CALL (250k)  │ │ CALL(150│ │
 │ └──────────────┘ └─────────┘ │

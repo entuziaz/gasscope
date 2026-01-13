@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
     const callTree = parseTrace(structLogs)
     const flameTree = toFlameTree(callTree)
     const OpcodeStats = aggregateOpcodes(callTree)
+    console.log("OpcodeStats:", OpcodeStats)
 
     return NextResponse.json({
         mode: "flame",

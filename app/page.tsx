@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
 import { FlameNode, opcodeGasToFlame } from "@/lib/flame"
+import { bucketizeOpcodeGas } from "@/lib/bucketize"
 
 export default function Home() {
   const [root, setRoot] = useState<FlameNode | null>(null)
@@ -20,9 +21,24 @@ export default function Home() {
     })
 
     const data = await res.json()
-    setRoot(data.root)
+    if (!res.ok) {
+      console.error("Trace error:", data)
+      alert(data.error ?? "Trace failed")
+      return
+    }
+
+    if (!data.opcodes?.gas) {
+      console.error("Missing opcode gas:", data)
+      alert("No opcode gas data returned")
+      return
+    }
+    // setRoot(data.root)
+
     // const flameRoot = opcodeGasToFlame(data.opcodes.gas)
     // setRoot(flameRoot)
+
+    const flameRoot = bucketizeOpcodeGas(data.opcodes.gas)
+    setRoot(flameRoot)
   }
 
   return (

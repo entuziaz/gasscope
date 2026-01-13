@@ -8,47 +8,58 @@ type Props = {
 
 export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
   const base = parentValue ?? node.value   // ROOT uses itself
-  const widthPercent = Math.max((node.value / base) * 100, 0.5) 
+  const widthPercent = Math.max((node.value / base) * 100, 0.4) 
 
   const isRoot = depth === 0
+  const percent = parentValue
+    ? ((node.value / parentValue) * 100).toFixed(1)
+    : "100"
 
-    return (
+  // Subtle depth shading
+  const bgLightness = Math.max(80 - depth * 3, 60)
+
+  // Hide labels when too small
+  const showLabel = widthPercent > 6
+
+  return (
     <div
       style={{
-        marginLeft: isRoot ? 0 : 2,
         width: `${widthPercent}%`,
         boxSizing: "border-box",
-        border: "1px solid #999",
-        background: isRoot ? "#ffd699" : "#ffcc80",
+        background: `hsl(38, 100%, ${bgLightness}%)`,
+        borderLeft: depth === 0 ? "1px solid #999" : "1px solid #bbb",
+        borderRight: "1px solid #bbb",
         fontSize: 12,
-        lineHeight: 1.3,
-        cursor: "default",
+        lineHeight: 1.4,
       }}
-      title={`${node.name} — ${node.value.toLocaleString()} gas`}
+      title={`${node.name} — ${node.value.toLocaleString()} gas (${percent}%)`}
     >
       {/* Label */}
-      <div
-        style={{
-          padding: "4px 6px",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          fontWeight: isRoot ? 600 : 400,
-        }}
-      >
-        {node.name}
-        <span style={{ color: "#333" }}>
-          {" "}
-          — {node.value.toLocaleString()} gas
-        </span>
-      </div>
+      {showLabel && (
+        <div
+          style={{
+            padding: "6px 8px",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            fontWeight: isRoot ? 600 : 400,
+          }}
+        >
+          {node.name}
+          <span style={{ color: "#333" }}>
+            {" "}
+            — {node.value.toLocaleString()} gas
+          </span>
+          <span style={{ color: "#666" }}> ({percent}%)</span>
+        </div>
+      )}
 
       {/* Children */}
       {node.children && node.children.length > 0 && (
         <div
           style={{
             display: "flex",
-            borderTop: "1px solid #bbb",
+            borderTop: "1px solid #ddd",
           }}
         >
           {node.children.map((child, i) => (

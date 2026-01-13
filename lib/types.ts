@@ -22,3 +22,15 @@ export type OpcodeStats = {
     counts: Record<string, number>
     gas: Record<string, number>
 }
+
+export type OpcodeBucket =
+  | "Storage"
+  | "Memory"
+  | "Control Flow"
+  | "Computation"
+  | "Stack"
+  | "Environment"
+  | "Calls"
+  | "Logging"
+  | "Creation"
+  | "Other"

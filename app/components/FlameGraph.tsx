@@ -28,7 +28,7 @@ export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
         boxSizing: "border-box",
         background: `hsl(38, 100%, ${bgLightness}%)`,
         borderLeft: depth === 0 ? "1px solid #999" : "1px solid #bbb",
-        borderRight: "1px solid #bbb",
+        borderRight: "1px solid #bcb",
         fontSize: 12,
         lineHeight: 1.4,
       }}
@@ -62,9 +62,9 @@ export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
             borderTop: "1px solid #ddd",
           }}
         >
-          {node.children.map((child, i) => (
+          {node.children.map((child) => (
             <FlameGraph
-              key={i}
+              key={`${depth + 1}-${child.name}`}
               node={child}
               parentValue={node.value}
               depth={depth + 1}

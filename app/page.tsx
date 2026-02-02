@@ -2,120 +2,89 @@
 
 import { useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
-import { FlameNode, opcodeGasToFlame } from "@/lib/flame"
-import { bucketizeOpcodeGas } from "@/lib/bucketize"
+import { FlameNode } from "@/lib/flame"
+
+type Mode = "opcode" | "calls" | "functions"
 
 export default function Home() {
-  const [root, setRoot] = useState<FlameNode | null>(null)
   const [txHash, setTxHash] = useState("")
+  const [opcodeRoot, setOpcodeRoot] =
+    useState<FlameNode | null>(null)
+  const [callRoot, setCallRoot] =
+    useState<FlameNode | null>(null)
+  const [functionRoot, setFunctionRoot] =
+    useState<FlameNode | null>(null)
+
   const isValidTx = txHash.trim().length > 0
 
-  async function loadTrace() {
+  async function fetchTrace(mode: Mode) {
     const res = await fetch("/trace", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        txHash,
-        mode: "flame",
-      }),
+      body: JSON.stringify({ txHash, mode }),
     })
 
     const data = await res.json()
-    if (!res.ok) {
-      console.error("Trace error:", data)
-      alert(data.error ?? "Trace failed")
-      return
+    if (!res.ok) throw new Error(data.error)
+    return data.root as FlameNode
+  }
+
+  async function loadTrace() {
+    try {
+      const [opcode, calls, functions] =
+        await Promise.all([
+          fetchTrace("opcode"),
+          fetchTrace("calls"),
+          fetchTrace("functions"),
+        ])
+
+      setOpcodeRoot(opcode)
+      setCallRoot(calls)
+      setFunctionRoot(functions)
+    } catch (err: any) {
+      alert(err.message ?? "Trace failed")
     }
-
-    if (!data.opcodes?.gas) {
-      console.error("Missing opcode gas:", data)
-      alert("No opcode gas data returned")
-      return
-    }
-    // setRoot(data.root)
-
-    // const flameRoot = opcodeGasToFlame(data.opcodes.gas)
-    // setRoot(flameRoot)
-
-    const flameRoot = bucketizeOpcodeGas(data.opcodes.gas)
-    setRoot(flameRoot)
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: root ? "flex-start" : "center",
-        padding: "32px",
-      }}
-    >
-      {/* Header / Input Card */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 640,
-          textAlign: "center",
-        }}
-      >
-        <h1 style={{ marginBottom: 8 }}>GasScope</h1>
-        <p style={{ marginBottom: 24, color: "#666", fontSize: 14 }}>
-          Minimal flame graph for EVM gas profiling
-        </p>
+    <main style={{ padding: 32 }}>
+      <h1>GasScope</h1>
 
-        <input
-          value={txHash}
-          onChange={(e) => setTxHash(e.target.value)}
-          placeholder="Paste transaction hash"
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            fontSize: 14,
-            borderRadius: 8,
-            border: "1px solid #ccc",
-            outline: "none",
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = "#000"
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = "#ccc"
-          }}
-        />
+      <input
+        value={txHash}
+        onChange={(e) => setTxHash(e.target.value)}
+        placeholder="Transaction hash"
+        style={{ width: 400, padding: 8 }}
+      />
 
+      <div>
         <button
           onClick={loadTrace}
           disabled={!isValidTx}
-          style={{
-            marginTop: 12,
-            width: "100%",
-            padding: "10px",
-            fontSize: 14,
-            borderRadius: 8,
-            border: "none",
-            cursor: isValidTx ? "pointer" : "not-allowed",
-            background: isValidTx ? "#000" : "#e5e5e5",
-            color: isValidTx ? "#fff" : "#888",
-            transition: "all 0.15s ease",
-          }}
         >
-          Trace Transaction
+          Trace
         </button>
-
       </div>
 
-      {/* Flame graph */}
-      {root && (
-        <div
-          style={{
-            width: "100%",
-            marginTop: 40,
-          }}
-        >
-          <FlameGraph node={root} />
-        </div>
+      {opcodeRoot && (
+        <>
+          <h2>Opcode Gas Breakdown</h2>
+          <FlameGraph node={opcodeRoot} />
+        </>
+      )}
+
+      {callRoot && (
+        <>
+          <h2>External Call Tree</h2>
+          <FlameGraph node={callRoot} />
+        </>
+      )}
+
+      {functionRoot && (
+        <>
+          <h2>Solidity Function Attribution</h2>
+          <FlameGraph node={functionRoot} />
+        </>
       )}
     </main>
   )

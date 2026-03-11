@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
 import { FlameNode } from "@/lib/flame"
+import styles from "./page.module.css"
 
 type Mode = "opcode" | "calls" | "functions"
 
@@ -58,35 +59,35 @@ export default function Home() {
 
   return (
     <main
-      className={`app-shell ${hasResults ? "has-results" : "is-empty"}`}
+      className={`${styles.appShell} ${hasResults ? styles.hasResults : styles.isEmpty}`}
     >
       {!hasResults ? (
-        <section className="hero-panel hero-panel-centered hero-panel-empty">
-          <div className="hero-copy hero-copy-empty">
-            <span className="hero-kicker">Transaction Gas Profiler</span>
+        <section className={`${styles.heroPanel} ${styles.heroPanelCentered} ${styles.heroPanelEmpty}`}>
+          <div className={`${styles.heroCopy} ${styles.heroCopyEmpty}`}>
+            <span className={styles.heroKicker}>Transaction Gas Profiler</span>
             <h1>GasScope</h1>
-            <p className="hero-text">
+            <p className={styles.heroText}>
               Inspect opcode costs, external call frames, and
               verified-function labels from a single transaction
               trace.
             </p>
-            <p className="trace-hint trace-hint-empty">
+            <p className={`${styles.traceHint} ${styles.traceHintEmpty}`}>
               A Rootstock RPC node with debug_traceTransaction is required
             </p>
           </div>
 
-          <div className="trace-panel trace-panel-empty">
-            <div className="trace-actions trace-actions-inline">
-              <div className="trace-input-wrap">
+          <div className={`${styles.tracePanel} ${styles.tracePanelEmpty}`}>
+            <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
+              <div className={styles.traceInputWrap}>
                 <label
-                  className="trace-label"
+                  className={styles.traceLabel}
                   htmlFor="txHash"
                 >
                   Txn Hash
                 </label>
                 <input
                   id="txHash"
-                  className="trace-input"
+                  className={styles.traceInput}
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
                   placeholder="0x..."
@@ -96,7 +97,7 @@ export default function Home() {
                 />
               </div>
               <button
-                className="trace-button"
+                className={styles.traceButton}
                 onClick={loadTrace}
                 disabled={!isValidTx}
               >
@@ -106,24 +107,24 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        <section className="hero-panel hero-panel-results">
-          <div className="hero-copy hero-copy-results">
-            <span className="hero-kicker">Transaction Gas Profiler</span>
+        <section className={`${styles.heroPanel} ${styles.heroPanelResults}`}>
+          <div className={`${styles.heroCopy} ${styles.heroCopyResults}`}>
+            <span className={styles.heroKicker}>Transaction Gas Profiler</span>
             <h1>GasScope</h1>
           </div>
 
-          <div className="trace-panel trace-panel-results">
-            <div className="trace-actions trace-actions-inline">
-              <div className="trace-input-wrap">
+          <div className={`${styles.tracePanel} ${styles.tracePanelResults}`}>
+            <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
+              <div className={styles.traceInputWrap}>
                 <label
-                  className="trace-label"
+                  className={styles.traceLabel}
                   htmlFor="txHash"
                 >
                   Txn Hash
                 </label>
                 <input
                   id="txHash"
-                  className="trace-input"
+                  className={styles.traceInput}
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
                   placeholder="0x..."
@@ -133,7 +134,7 @@ export default function Home() {
                 />
               </div>
               <button
-                className="trace-button"
+                className={styles.traceButton}
                 onClick={loadTrace}
                 disabled={!isValidTx}
               >
@@ -144,21 +145,21 @@ export default function Home() {
         </section>
       )}
 
-      <section className="results-grid">
+      <section className={styles.resultsGrid}>
         {opcodeRoot && (
-          <article className="result-card">
-            <div className="section-head">
+          <article className={styles.resultCard}>
+            <div className={styles.sectionHead}>
               <div>
-                <p className="section-kicker">Low-Level View</p>
+                <p className={styles.sectionKicker}>Low-Level View</p>
                 <h2>Opcode Gas Breakdown</h2>
               </div>
             </div>
-            <p className="section-copy">
+            <p className={styles.sectionCopy}>
               Aggregated gas distribution by opcode category.
               This highlights low-level gas sinks, not Solidity
               function boundaries.
             </p>
-            <div className="flame-wrap">
+            <div className={styles.flameWrap}>
               <FlameGraph
                 node={opcodeRoot}
                 palette="orange"
@@ -168,26 +169,26 @@ export default function Home() {
         )}
 
         {callRoot && (
-          <article className="result-card">
-            <div className="section-head">
+          <article className={styles.resultCard}>
+            <div className={styles.sectionHead}>
               <div>
-                <p className="section-kicker">Execution Frames</p>
+                <p className={styles.sectionKicker}>Execution Frames</p>
                 <h2>External Call Tree</h2>
               </div>
             </div>
-            <p className="section-copy">
+            <p className={styles.sectionCopy}>
               Labels are resolved in this order: verified ABI,
               4-byte signature lookup, then raw address and
               selector fallback.
             </p>
             {!hasNestedExternalCalls && (
-              <p className="section-note">
+              <p className={styles.sectionNote}>
                 This transaction has a single external execution
                 frame. No nested contract-to-contract calls were
                 observed by <code>callTracer</code>.
               </p>
             )}
-            <div className="flame-wrap">
+            <div className={styles.flameWrap}>
               <FlameGraph
                 node={callRoot}
                 palette="pink"
@@ -197,21 +198,21 @@ export default function Home() {
         )}
 
         {functionRoot && (
-          <article className="result-card experimental-card">
-            <div className="section-head">
+          <article className={`${styles.resultCard} ${styles.experimentalCard}`}>
+            <div className={styles.sectionHead}>
               <div>
-                <p className="section-kicker">Experimental</p>
+                <p className={styles.sectionKicker}>Experimental</p>
                 <h2>Solidity Function Attribution</h2>
               </div>
-              <span className="status-pill">Needs metadata</span>
+              <span className={styles.statusPill}>Needs metadata</span>
             </div>
-            <p className="section-copy">
+            <p className={styles.sectionCopy}>
               Unavailable for this transaction because the app
               only has EVM execution traces. Solidity-level
               attribution needs verified source, compiler
               metadata, and sourcemaps.
             </p>
-            <div className="flame-wrap">
+            <div className={styles.flameWrap}>
               <FlameGraph
                 node={functionRoot}
                 palette="green"

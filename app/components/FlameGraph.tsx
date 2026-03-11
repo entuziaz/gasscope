@@ -1,4 +1,5 @@
 import { FlameNode } from "@/lib/flame"
+import styles from "./FlameGraph.module.css"
 
 type Props = {
   node: FlameNode
@@ -35,7 +36,7 @@ export function FlameGraph({
 
   return (
     <div
-      className="flame-node"
+      className={styles.node}
       style={{
         width: `${widthPercent}%`,
         background: swatch,
@@ -49,30 +50,24 @@ export function FlameGraph({
       {/* Label */}
       {showLabel && (
         <div
+          className={`${styles.label} ${isRoot ? styles.labelRoot : styles.labelChild}`}
           style={{
-            padding: "6px 8px",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
             fontWeight: isRoot ? 600 : 400,
           }}
         >
           {node.name}
-          <span style={{ color: "rgba(0, 0, 0, 0.72)" }}>
+          <span className={styles.value}>
             {" "}
             — {node.value.toLocaleString()} gas
           </span>
-          <span style={{ color: "rgba(0, 0, 0, 0.58)" }}> ({percent}%)</span>
+          <span className={styles.percent}> ({percent}%)</span>
         </div>
       )}
 
       {/* Children */}
       {node.children && node.children.length > 0 && (
         <div
-          style={{
-            display: "flex",
-            borderTop: "1px solid rgba(0, 0, 0, 0.12)",
-          }}
+          className={styles.children}
         >
           {node.children.map((child) => (
             <FlameGraph

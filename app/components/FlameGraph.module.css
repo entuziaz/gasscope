@@ -1,0 +1,31 @@
+.node {
+  min-height: 34px;
+}
+
+.label {
+  padding: 6px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labelRoot {
+  font-weight: 600;
+}
+
+.labelChild {
+  font-weight: 400;
+}
+
+.value {
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.percent {
+  color: rgba(0, 0, 0, 0.58);
+}
+
+.children {
+  display: flex;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}

@@ -704,10 +704,13 @@ code {
   }
 
   .hero-panel-empty .trace-button {
-    width: 100%;
-    min-height: 62px;
-    padding: 0 18px;
-    font-size: 13px;
+    width: auto;
+    align-self: flex-start;
+    min-height: 52px;
+    padding: 0 16px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    box-shadow: none;
   }
 }
 

@@ -3,8 +3,16 @@
 ## Introduction
 
 <figure>
-<img width="1425" height="279" alt="gasscope-ideate" src="https://github.com/user-attachments/assets/6f42bd87-2f49-4867-b62e-25664d15362f" />
-<figcaption>Figure: current visual progress</figcaption>
+<img width="1271" height="696" alt="App screenshot" src="https://github.com/user-attachments/assets/b891a05b-b93e-4cb1-aea9-e171b3603808" />
+<figcaption>App screenshot</figcaption>
+</figure>
+
+<br>
+<br>
+
+<figure>
+<img width="1026" height="699" alt="Tracing a transaction" src="https://github.com/user-attachments/assets/57775bc6-716c-487d-9f6e-769ea53d7685" />
+<figcaption>GasScope in action</figcaption>
 </figure>
 
 <br>
@@ -20,9 +28,9 @@ This repo is a [Next.js](https://nextjs.org) project bootstrapped with [`create-
 - [x] Develop a backend service that uses the debug_traceTransaction RPC method, focusing on the gasCost for each step. 
 - [x] Implement a parser to aggregate the gas costs per function call, building a tree-like data structure of the transaction's execution path. 
 - [x] Build a React frontend that accepts a transaction hash (or can be linked from Tx-Ray). 
-- [ ] The UI will render the gas data as an interactive flame graph, allowing developers to instantly spot the most expensive function calls. 
-- [ ] Display a simple "cost-by-opcode" breakdown to identify low-level gas sinks (e.g., SSTORE, LOG, CREATE). 
-- [ ] Deploy as an open-source tool for the entire Rootstock developer community.
+- [x] The UI will render the gas data as an interactive flame graph, allowing developers to instantly spot the most expensive function calls. 
+- [x] Display a simple "cost-by-opcode" breakdown to identify low-level gas sinks (e.g., SSTORE, LOG, CREATE). 
+- [x] Deploy as an open-source tool for the entire Rootstock developer community.
 
 
 ### Starting Folder Structure:

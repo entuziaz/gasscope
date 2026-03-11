@@ -4,9 +4,21 @@ type Props = {
   node: FlameNode
   parentValue?: number
   depth?: number
+  palette?: "orange" | "pink" | "green"
 }
 
-export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
+const palettes = {
+  orange: ["#ff9100", "#ffb74d", "#ffd08a"],
+  pink: ["#ff71e1", "#ff9feb", "#ffc8f4"],
+  green: ["#79c600", "#9fde2f", "#c4ef75"],
+} as const
+
+export function FlameGraph({
+  node,
+  parentValue,
+  depth = 0,
+  palette = "orange",
+}: Props) {
   const base = parentValue ?? node.value   // ROOT uses itself
   const widthPercent = Math.max((node.value / base) * 100, 0.4) 
 
@@ -15,20 +27,20 @@ export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
     ? ((node.value / parentValue) * 100).toFixed(1)
     : "100"
 
-  // Subtle depth shading
-  const bgLightness = Math.max(80 - depth * 3, 60)
-
   // Hide labels when too small
   const showLabel = widthPercent > 6
+  const swatches = palettes[palette]
+  const swatch = swatches[Math.min(depth, swatches.length - 1)]
+  const borderColor = depth === 0 ? "#000000" : "rgba(0, 0, 0, 0.18)"
 
   return (
     <div
+      className="flame-node"
       style={{
         width: `${widthPercent}%`,
-        boxSizing: "border-box",
-        background: `hsl(38, 100%, ${bgLightness}%)`,
-        borderLeft: depth === 0 ? "1px solid #999" : "1px solid #bbb",
-        borderRight: "1px solid #bcb",
+        background: swatch,
+        borderLeft: `1px solid ${borderColor}`,
+        borderRight: `1px solid ${borderColor}`,
         fontSize: 12,
         lineHeight: 1.4,
       }}
@@ -46,11 +58,11 @@ export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
           }}
         >
           {node.name}
-          <span style={{ color: "#333" }}>
+          <span style={{ color: "rgba(0, 0, 0, 0.72)" }}>
             {" "}
             — {node.value.toLocaleString()} gas
           </span>
-          <span style={{ color: "#666" }}> ({percent}%)</span>
+          <span style={{ color: "rgba(0, 0, 0, 0.58)" }}> ({percent}%)</span>
         </div>
       )}
 
@@ -59,7 +71,7 @@ export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
         <div
           style={{
             display: "flex",
-            borderTop: "1px solid #ddd",
+            borderTop: "1px solid rgba(0, 0, 0, 0.12)",
           }}
         >
           {node.children.map((child) => (
@@ -68,6 +80,7 @@ export function FlameGraph({ node, parentValue, depth = 0 }: Props) {
               node={child}
               parentValue={node.value}
               depth={depth + 1}
+              palette={palette}
             />
           ))}
         </div>

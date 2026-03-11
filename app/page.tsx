@@ -23,6 +23,9 @@ export default function Home() {
   const hasNestedExternalCalls = Boolean(
     callRoot?.children && callRoot.children.length > 0
   )
+  const hasResults = Boolean(
+    opcodeRoot || callRoot || functionRoot
+  )
 
   async function fetchTrace(mode: Mode) {
     const res = await fetch("/trace", {
@@ -54,52 +57,92 @@ export default function Home() {
   }
 
   return (
-    <main className="app-shell">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <span className="hero-kicker">Transaction Gas Profiler</span>
-          <h1>GasScope</h1>
-          <p className="hero-text">
-            Inspect opcode costs, external call frames, and
-            verified-function labels from a single transaction
-            trace.
-          </p>
-        </div>
-
-        <div className="trace-panel">
-          <label
-            className="trace-label"
-            htmlFor="txHash"
-          >
-            Transaction Hash
-          </label>
-
-          <input
-            id="txHash"
-            className="trace-input"
-            value={txHash}
-            onChange={(e) => setTxHash(e.target.value)}
-            placeholder="0x..."
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-          />
-
-          <div className="trace-actions">
-            <button
-              className="trace-button"
-              onClick={loadTrace}
-              disabled={!isValidTx}
-            >
-              Trace Transaction
-            </button>
-            <p className="trace-hint">
-              Use a node that exposes{" "}
-              <code>debug_traceTransaction</code>.
+    <main
+      className={`app-shell ${hasResults ? "has-results" : "is-empty"}`}
+    >
+      {!hasResults ? (
+        <section className="hero-panel hero-panel-centered hero-panel-empty">
+          <div className="hero-copy hero-copy-empty">
+            <span className="hero-kicker">Transaction Gas Profiler</span>
+            <h1>GasScope</h1>
+            <p className="hero-text">
+              Inspect opcode costs, external call frames, and
+              verified-function labels from a single transaction
+              trace.
+            </p>
+            <p className="trace-hint trace-hint-empty">
+              A Rootstock RPC node with debug_traceTransaction is required
             </p>
           </div>
-        </div>
-      </section>
+
+          <div className="trace-panel trace-panel-empty">
+            <div className="trace-actions trace-actions-inline">
+              <div className="trace-input-wrap">
+                <label
+                  className="trace-label"
+                  htmlFor="txHash"
+                >
+                  Txn Hash
+                </label>
+                <input
+                  id="txHash"
+                  className="trace-input"
+                  value={txHash}
+                  onChange={(e) => setTxHash(e.target.value)}
+                  placeholder="0x..."
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+              </div>
+              <button
+                className="trace-button"
+                onClick={loadTrace}
+                disabled={!isValidTx}
+              >
+                Trace Transaction
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="hero-panel hero-panel-results">
+          <div className="hero-copy hero-copy-results">
+            <span className="hero-kicker">Transaction Gas Profiler</span>
+            <h1>GasScope</h1>
+          </div>
+
+          <div className="trace-panel trace-panel-results">
+            <div className="trace-actions trace-actions-inline">
+              <div className="trace-input-wrap">
+                <label
+                  className="trace-label"
+                  htmlFor="txHash"
+                >
+                  Txn Hash
+                </label>
+                <input
+                  id="txHash"
+                  className="trace-input"
+                  value={txHash}
+                  onChange={(e) => setTxHash(e.target.value)}
+                  placeholder="0x..."
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+              </div>
+              <button
+                className="trace-button"
+                onClick={loadTrace}
+                disabled={!isValidTx}
+              >
+                Trace Transaction
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="results-grid">
         {opcodeRoot && (
@@ -116,7 +159,10 @@ export default function Home() {
               function boundaries.
             </p>
             <div className="flame-wrap">
-              <FlameGraph node={opcodeRoot} />
+              <FlameGraph
+                node={opcodeRoot}
+                palette="orange"
+              />
             </div>
           </article>
         )}
@@ -142,7 +188,10 @@ export default function Home() {
               </p>
             )}
             <div className="flame-wrap">
-              <FlameGraph node={callRoot} />
+              <FlameGraph
+                node={callRoot}
+                palette="pink"
+              />
             </div>
           </article>
         )}
@@ -163,7 +212,10 @@ export default function Home() {
               metadata, and sourcemaps.
             </p>
             <div className="flame-wrap">
-              <FlameGraph node={functionRoot} />
+              <FlameGraph
+                node={functionRoot}
+                palette="green"
+              />
             </div>
           </article>
         )}

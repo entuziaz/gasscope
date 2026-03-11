@@ -646,7 +646,7 @@ code {
     border-radius: 0;
     border: 1px solid var(--border);
     border-bottom: 4px solid #0d2c57;
-    padding: 12px 0 0;
+    padding: 0;
   }
 
   .trace-input-wrap {
@@ -654,6 +654,17 @@ code {
     flex-direction: column;
     align-items: stretch;
     padding: 0 18px;
+    gap: 8px;
+  }
+
+  .trace-panel-empty .trace-actions-inline {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .trace-panel-empty .trace-input-wrap {
+    min-height: auto;
+    padding: 18px 18px 14px;
     gap: 8px;
   }
 
@@ -666,6 +677,10 @@ code {
     min-width: 0;
   }
 
+  .trace-panel-empty .trace-label {
+    font-size: 14px;
+  }
+
   .trace-panel-empty .trace-input,
   .trace-panel-results .trace-input {
     min-height: 56px;
@@ -675,12 +690,24 @@ code {
     background: #ffffff;
   }
 
+  .trace-panel-empty .trace-input {
+    min-height: 54px;
+    font-size: 15px;
+  }
+
   .hero-panel-empty .trace-button,
   .trace-button {
     min-width: 0;
     min-height: 56px;
     border-radius: 0;
     margin-top: 0;
+  }
+
+  .hero-panel-empty .trace-button {
+    width: 100%;
+    min-height: 62px;
+    padding: 0 18px;
+    font-size: 13px;
   }
 }
 

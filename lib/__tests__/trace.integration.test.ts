@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect } from "vitest"
 import { parseTrace } from "../parser"
 import { toFlameTree } from "../flame"
 
@@ -10,7 +10,7 @@ describe("trace pipeline", () => {
       { op: "STOP", depth: 0, gasCost: 0 },
     ]
 
-    const callTree = parseTrace(structLogs as any)
+    const callTree = parseTrace(structLogs)
     const flame = toFlameTree(callTree)
 
     expect(flame.name).toBe("ROOT")

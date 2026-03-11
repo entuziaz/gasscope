@@ -6,6 +6,10 @@ import { buildFunctionFlame } from "@/lib/traces/functionTrace"
 
 type TraceMode = "opcode" | "calls" | "functions"
 
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Trace failed"
+}
+
 export async function POST(req: NextRequest) {
   const { txHash, mode }: { txHash?: string; mode?: TraceMode } =
     await req.json()
@@ -57,7 +61,7 @@ export async function POST(req: NextRequest) {
       const json = await res.json()
       if (json.error) throw new Error(json.error.message)
 
-      const root = buildCallFlame(json.result)
+      const root = await buildCallFlame(json.result)
       return NextResponse.json({ mode, root })
     }
 
@@ -98,9 +102,9 @@ export async function POST(req: NextRequest) {
     }
 
     throw new Error("Unreachable")
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message ?? "Trace failed" },
+      { error: toErrorMessage(err) },
       { status: 500 }
     )
   }

@@ -1,40 +1,33 @@
-import { FlameNode } from "@/lib/flame"
-
-type CallTracerFrame = {
-  type?: string
-  from?: string
-  to?: string
-  input?: string
-  gasUsed?: string
-  calls?: CallTracerFrame[]
-}
+import { FlameNode } from "../flame"
+import { resolveCallLabel } from "../resolvers/callLabel"
+import { CallTracerFrame } from "../types"
 
 function hexToNumber(hex?: string): number {
   if (!hex) return 0
   return Number.parseInt(hex, 16)
 }
 
-function selectorLabel(frame: CallTracerFrame): string {
-  if (!frame.input || frame.input.length < 10) {
-    return frame.to ?? "UNKNOWN"
-  }
-  return `${frame.to}::${frame.input.slice(0, 10)}`
-}
+async function toFlameNode(
+  frame: CallTracerFrame
+): Promise<FlameNode> {
+  const resolved = await resolveCallLabel(frame)
+  const children = frame.calls
+    ? await Promise.all(frame.calls.map(toFlameNode))
+    : undefined
 
-function toFlameNode(frame: CallTracerFrame): FlameNode {
   return {
-    name: selectorLabel(frame),
+    name: resolved.label,
     value: hexToNumber(frame.gasUsed),
-    children: frame.calls?.map(toFlameNode),
+    children,
   }
 }
 
 /**
  * callTracer result -> FlameNode tree
  */
-export function buildCallFlame(
+export async function buildCallFlame(
   rootFrame: CallTracerFrame
-): FlameNode {
+): Promise<FlameNode> {
   // ROOT === top-level call frame
   return toFlameNode(rootFrame)
 }

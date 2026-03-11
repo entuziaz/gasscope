@@ -8,6 +8,15 @@ export type StructLog = {
     gasCost: number
 }
 
+export type CallTracerFrame = {
+    type?: string
+    from?: string
+    to?: string
+    input?: string
+    gasUsed?: string
+    calls?: CallTracerFrame[]
+}
+
 // output
 export type CallFrame = {
     id: string
@@ -34,3 +43,19 @@ export type OpcodeBucket =
   | "Logging"
   | "Creation"
   | "Other"
+
+export type CallLabelSource =
+  | "fallback"
+  | "abi"
+  | "4byte"
+
+export type ResolvedCallLabel = {
+    label: string
+    source: CallLabelSource
+    selector?: string
+    calldataBytes: number
+    address?: string
+    contractName?: string
+    functionName?: string
+    signature?: string
+}

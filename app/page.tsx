@@ -6,6 +6,10 @@ import { FlameNode } from "@/lib/flame"
 
 type Mode = "opcode" | "calls" | "functions"
 
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Trace failed"
+}
+
 export default function Home() {
   const [txHash, setTxHash] = useState("")
   const [opcodeRoot, setOpcodeRoot] =
@@ -41,8 +45,8 @@ export default function Home() {
       setOpcodeRoot(opcode)
       setCallRoot(calls)
       setFunctionRoot(functions)
-    } catch (err: any) {
-      alert(err.message ?? "Trace failed")
+    } catch (err: unknown) {
+      alert(toErrorMessage(err))
     }
   }
 

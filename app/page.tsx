@@ -20,6 +20,9 @@ export default function Home() {
     useState<FlameNode | null>(null)
 
   const isValidTx = txHash.trim().length > 0
+  const hasNestedExternalCalls = Boolean(
+    callRoot?.children && callRoot.children.length > 0
+  )
 
   async function fetchTrace(mode: Mode) {
     const res = await fetch("/trace", {
@@ -51,45 +54,120 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: 32 }}>
-      <h1>GasScope</h1>
+    <main className="app-shell">
+      <section className="hero-panel">
+        <div className="hero-copy">
+          <span className="hero-kicker">Transaction Gas Profiler</span>
+          <h1>GasScope</h1>
+          <p className="hero-text">
+            Inspect opcode costs, external call frames, and
+            verified-function labels from a single transaction
+            trace.
+          </p>
+        </div>
 
-      <input
-        value={txHash}
-        onChange={(e) => setTxHash(e.target.value)}
-        placeholder="Transaction hash"
-        style={{ width: 400, padding: 8 }}
-      />
+        <div className="trace-panel">
+          <label
+            className="trace-label"
+            htmlFor="txHash"
+          >
+            Transaction Hash
+          </label>
 
-      <div>
-        <button
-          onClick={loadTrace}
-          disabled={!isValidTx}
-        >
-          Trace
-        </button>
-      </div>
+          <input
+            id="txHash"
+            className="trace-input"
+            value={txHash}
+            onChange={(e) => setTxHash(e.target.value)}
+            placeholder="0x..."
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+          />
 
-      {opcodeRoot && (
-        <>
-          <h2>Opcode Gas Breakdown</h2>
-          <FlameGraph node={opcodeRoot} />
-        </>
-      )}
+          <div className="trace-actions">
+            <button
+              className="trace-button"
+              onClick={loadTrace}
+              disabled={!isValidTx}
+            >
+              Trace Transaction
+            </button>
+            <p className="trace-hint">
+              Use a node that exposes{" "}
+              <code>debug_traceTransaction</code>.
+            </p>
+          </div>
+        </div>
+      </section>
 
-      {callRoot && (
-        <>
-          <h2>External Call Tree</h2>
-          <FlameGraph node={callRoot} />
-        </>
-      )}
+      <section className="results-grid">
+        {opcodeRoot && (
+          <article className="result-card">
+            <div className="section-head">
+              <div>
+                <p className="section-kicker">Low-Level View</p>
+                <h2>Opcode Gas Breakdown</h2>
+              </div>
+            </div>
+            <p className="section-copy">
+              Aggregated gas distribution by opcode category.
+              This highlights low-level gas sinks, not Solidity
+              function boundaries.
+            </p>
+            <div className="flame-wrap">
+              <FlameGraph node={opcodeRoot} />
+            </div>
+          </article>
+        )}
 
-      {functionRoot && (
-        <>
-          <h2>Solidity Function Attribution</h2>
-          <FlameGraph node={functionRoot} />
-        </>
-      )}
+        {callRoot && (
+          <article className="result-card">
+            <div className="section-head">
+              <div>
+                <p className="section-kicker">Execution Frames</p>
+                <h2>External Call Tree</h2>
+              </div>
+            </div>
+            <p className="section-copy">
+              Labels are resolved in this order: verified ABI,
+              4-byte signature lookup, then raw address and
+              selector fallback.
+            </p>
+            {!hasNestedExternalCalls && (
+              <p className="section-note">
+                This transaction has a single external execution
+                frame. No nested contract-to-contract calls were
+                observed by <code>callTracer</code>.
+              </p>
+            )}
+            <div className="flame-wrap">
+              <FlameGraph node={callRoot} />
+            </div>
+          </article>
+        )}
+
+        {functionRoot && (
+          <article className="result-card experimental-card">
+            <div className="section-head">
+              <div>
+                <p className="section-kicker">Experimental</p>
+                <h2>Solidity Function Attribution</h2>
+              </div>
+              <span className="status-pill">Needs metadata</span>
+            </div>
+            <p className="section-copy">
+              Unavailable for this transaction because the app
+              only has EVM execution traces. Solidity-level
+              attribution needs verified source, compiler
+              metadata, and sourcemaps.
+            </p>
+            <div className="flame-wrap">
+              <FlameGraph node={functionRoot} />
+            </div>
+          </article>
+        )}
+      </section>
     </main>
   )
 }

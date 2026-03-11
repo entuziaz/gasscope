@@ -292,8 +292,8 @@ function buildFourByteLabel(
 
   const label =
     signatures.length === 1
-      ? `${best} [best effort]`
-      : `${shortAddress(address)}::${selector} [${signatures.length} possible signatures]`
+      ? `${best} [4-byte best effort]`
+      : `${shortAddress(address)}::${selector} [${signatures.length} possible signatures from 4-byte lookup]`
 
   return {
     label,

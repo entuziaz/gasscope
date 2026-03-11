@@ -28,7 +28,7 @@ export function buildFunctionFlame(
     children: [
       {
         name:
-          "Solidity function attribution (requires source + sourcemap)",
+          "Function attribution unavailable without verified source metadata",
         value: totalGas,
       },
     ],

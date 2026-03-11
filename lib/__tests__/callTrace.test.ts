@@ -131,7 +131,7 @@ describe("buildCallFlame", () => {
     const flame = await buildCallFlame(frame)
 
     expect(flame.name).toBe(
-      "transfer(address,uint256) [best effort]"
+      "transfer(address,uint256) [4-byte best effort]"
     )
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })

@@ -1,7 +1,5 @@
 # GasScope (Under construction)
 
-## Introduction
-
 <figure>
 <img width="1271" height="696" alt="App screenshot" src="https://github.com/user-attachments/assets/b891a05b-b93e-4cb1-aea9-e171b3603808" />
 <figcaption>App screenshot</figcaption>
@@ -18,11 +16,11 @@
 <br>
 <br>
 
+## Introduction
+
 GasScope is a visual gas profiler that pinpoints exactly where gas is being spent inside a complex transaction. It solves the critical problem of gas optimization, which is currently a "guess-and-check" process. Users submit a transaction hash, and GasScope generates a "flame graph" showing the gas cost of every internal function call. It’s the Tx-Ray for performance, enabling developers to build highly efficient and cost-effective dApps on Rootstock.
 
-
 This repo is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 
 ### Intended Scope:
 - [x] Develop a backend service that uses the debug_traceTransaction RPC method, focusing on the gasCost for each step. 

@@ -1,157 +1,69 @@
-# GasScope (Under construction)
+# GasScope
 
 <figure>
 <img width="1271" height="696" alt="App screenshot" src="https://github.com/user-attachments/assets/b891a05b-b93e-4cb1-aea9-e171b3603808" />
 <figcaption>App screenshot</figcaption>
 </figure>
 
-<br>
-<br>
+## Introduction
+
+GasScope is a transaction gas profiler for Rootstock. The goal is to make gas analysis less of a guess-and-check process by showing where gas is spent inside a traced transaction, in a form that is fast to inspect.
+
+Currently, the app exposes three complementary views from the same trace: opcode-level gas breakdown, external call frames, and an experimental function-attribution view.
+
+## Requirements
+
+- A Rootstock RPC node with `debug_traceTransaction` enabled
+- `RSK_RPC_URL` pointing to that node
+- If you need an RSKj node, use the official Rootstock setup guides for [CLI](https://dev.rootstock.io/node-operators/setup/node-runner/cli/), [macOS](https://dev.rootstock.io/node-operators/setup/node-runner/macos/), [Linux](https://dev.rootstock.io/node-operators/setup/node-runner/linux/), or [Windows](https://dev.rootstock.io/node-operators/setup/node-runner/windows/).
+
+Example `.env.local`:
+
+```bash
+RSK_RPC_URL="http://localhost:4444"
+```
+
+## Run locally
+
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm dev
+```
+
+The app runs at `http://localhost:3000`.
 
 <figure>
 <img width="1026" height="699" alt="Tracing a transaction" src="https://github.com/user-attachments/assets/57775bc6-716c-487d-9f6e-769ea53d7685" />
 <figcaption>GasScope in action</figcaption>
 </figure>
 
-<br>
-<br>
-
-## Introduction
-
-GasScope is a visual gas profiler that pinpoints exactly where gas is being spent inside a complex transaction. It solves the critical problem of gas optimization, which is currently a "guess-and-check" process. Users submit a transaction hash, and GasScope generates a "flame graph" showing the gas cost of every internal function call. It’s the Tx-Ray for performance, enabling developers to build highly efficient and cost-effective dApps on Rootstock.
-
-This repo is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-### Intended Scope:
-- [x] Develop a backend service that uses the debug_traceTransaction RPC method, focusing on the gasCost for each step. 
-- [x] Implement a parser to aggregate the gas costs per function call, building a tree-like data structure of the transaction's execution path. 
-- [x] Build a React frontend that accepts a transaction hash (or can be linked from Tx-Ray). 
-- [x] The UI will render the gas data as an interactive flame graph, allowing developers to instantly spot the most expensive function calls. 
-- [x] Display a simple "cost-by-opcode" breakdown to identify low-level gas sinks (e.g., SSTORE, LOG, CREATE). 
-- [x] Deploy as an open-source tool for the entire Rootstock developer community.
-
-
-### Starting Folder Structure:
-
-```text
-GasScope (Next.js)
-│
-├─ app/
-│   ├─ page.tsx              ← UI (tx input)
-│   ├─ trace/
-│   │   └─ route.ts          ← backend API (RPC call)
-│   ├─ components/
-│   │   ├─ FlameGraph.tsx
-│   │   └─ OpcodeTable.tsx
-│
-├─ lib/
-│   ├─ trace.ts             
-│   ├─ parser.ts             ← call-tree builder
-│   └─ types.ts              ← shared types
-│
-└─ package.json
-```
-
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-pnpm dev
-```
-
-Try to obtain a flame tree by supplying a real transaction hash with the following terminal command. Be sure to keep your rskj node running.
+## Example request
 
 ```bash
 curl -X POST http://localhost:3000/trace \
   -H "Content-Type: application/json" \
   -d '{
-    "txHash": "0xded3d94dc58c6e7c2725ad3db893febfac805be6b8b0fb8a493c8a5db8585dc6"
+    "txHash": "0xded3d94dc58c6e7c2725ad3db893febfac805be6b8b0fb8a493c8a5db8585dc6",
+    "mode": "calls"
   }'
 ```
 
-You should get something like:
+Example response shape:
 
-```bash
+```json
 {
-    "root": {
-        "name": "ROOT",
-        "value": 1108639
-    }
-}
-```
-
-or:
-
-```bash
-{
-  "mode": "flame",
+  "mode": "calls",
   "root": {
-    "name": "ROOT",
-    "value": 1108639
-  },
-  "opcodes": {
-    "counts": {
-      "PUSH1": 206,
-      "MSTORE": 1,
-      "CALLVALUE": 1,
-      "DUP1": 804,
-      "ISZERO": 403,
-      "PUSH2": 1817,
-      "JUMPI": 407,
-      "JUMPDEST": 1616,
-      "POP": 2814,
-      "CALLDATASIZE": 2,
-      "LT": 202,
-      "PUSH0": 1007,
-      "CALLDATALOAD": 2,
-      "SHR": 1,
-      "PUSH4": 2,
-      "EQ": 3,
-      "SUB": 2,
-      "DUP2": 1008,
-      "ADD": 402,
-      "SWAP1": 1406,
-      "SWAP2": 1205,
-      "JUMP": 1410,
-      "DUP3": 1202,
-      "DUP5": 2,
-      "SLT": 1,
-      "DUP6": 1,
-      "SWAP3": 602,
-      "SLOAD": 200,
-      "DUP4": 200,
-      "GT": 200,
-      "SSTORE": 200,
-      "STOP": 1
-    },
+    "name": "CALL",
+    "value": 1108639,
+    "children": []
   }
 }
-
 ```
 
-To run tests:
+## Current outputs
 
-```bash
-pnpm test
-```
-
-Flamegraph Nodes:
-A flame graph is uses nested flexboxes to represent:
-- X-axis → proportional to value (gas)
-- Y-axis → call depth
-- Children sit on top of parents
-- Siblings sit side-by-side
-
-So every node renders:
-
-```
-┌──────────────────────────────┐
-│ CALL (400k gas)              │  ← width proportional to value
-│ ┌──────────────┐ ┌─────────┐ │
-│ │ CALL (250k)  │ │ CALL(150│ │
-│ └──────────────┘ └─────────┘ │
-└──────────────────────────────┘
-```
-
+- `opcode`: aggregated gas usage by opcode category
+- `calls`: external call tree from `callTracer`
+- `functions`: experimental Solidity-level attribution; accurate labels require verified source, compiler metadata, and sourcemaps

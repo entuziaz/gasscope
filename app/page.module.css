@@ -666,7 +666,8 @@
 
   .heroPanelEmpty .traceButton,
   .tracePanelResults .traceButton {
-    width: auto;
+    width: 100%;
+    align-self: stretch;
     align-self: flex-start;
     min-height: 52px;
     padding: 0 16px;

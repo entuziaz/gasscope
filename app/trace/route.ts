@@ -6,12 +6,82 @@ import { buildFunctionFlame } from "@/lib/traces/functionTrace"
 
 type TraceMode = "opcode" | "calls" | "functions"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
+const RATE_LIMIT_WINDOW_MS = 60_000
+const RATE_LIMIT_MAX_REQUESTS = 12
+const RATE_LIMIT_MAX_KEYS = 1024
+
+const traceRateLimit = new Map<string, number[]>()
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Trace failed"
 }
 
+function getClientIp(req: NextRequest): string {
+  const forwardedFor = req.headers.get("x-forwarded-for")
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(",")[0]?.trim()
+    if (firstIp) return firstIp
+  }
+
+  return "unknown"
+}
+
+function pruneRateLimitStore(now: number): void {
+  for (const [key, timestamps] of traceRateLimit.entries()) {
+    const activeTimestamps = timestamps.filter(
+      (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS
+    )
+
+    if (activeTimestamps.length === 0) {
+      traceRateLimit.delete(key)
+      continue
+    }
+
+    traceRateLimit.set(key, activeTimestamps)
+  }
+
+  while (traceRateLimit.size > RATE_LIMIT_MAX_KEYS) {
+    const oldestKey = traceRateLimit.keys().next().value
+    if (oldestKey === undefined) break
+    traceRateLimit.delete(oldestKey)
+  }
+}
+
+function consumeRateLimit(ip: string, now: number): boolean {
+  pruneRateLimitStore(now)
+
+  const recentTimestamps = (
+    traceRateLimit.get(ip) ?? []
+  ).filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS)
+
+  if (recentTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    traceRateLimit.set(ip, recentTimestamps)
+    return false
+  }
+
+  recentTimestamps.push(now)
+  traceRateLimit.set(ip, recentTimestamps)
+  return true
+}
+
 export async function POST(req: NextRequest) {
+  const now = Date.now()
+  const clientIp = getClientIp(req)
+
+  if (!consumeRateLimit(clientIp, now)) {
+    return NextResponse.json(
+      { error: "Too many trace requests. Please wait about 60 seconds and try again." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(
+            Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
+          ),
+        },
+      }
+    )
+  }
+
   let body: { txHash?: string; mode?: TraceMode }
 
   try {

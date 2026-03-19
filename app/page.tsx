@@ -3,14 +3,11 @@
 import { useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
 import { FlameNode } from "@/lib/flame"
+import { toErrorMessage } from "@/lib/errors"
 import styles from "./page.module.css"
 
 type Mode = "opcode" | "calls" | "functions"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
-
-function toErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "Trace failed"
-}
 
 export default function Home() {
   const [txHash, setTxHash] = useState("")

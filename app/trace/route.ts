@@ -3,6 +3,7 @@ import { StructLog } from "@/lib/types"
 import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
 import { buildCallFlame } from "@/lib/traces/callTrace"
 import { buildFunctionFlame } from "@/lib/traces/functionTrace"
+import { toErrorMessage } from "@/lib/errors"
 
 type TraceMode = "opcode" | "calls" | "functions"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
@@ -11,10 +12,6 @@ const RATE_LIMIT_MAX_REQUESTS = 12
 const RATE_LIMIT_MAX_KEYS = 1024
 
 const traceRateLimit = new Map<string, number[]>()
-
-function toErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "Trace failed"
-}
 
 function getClientIp(req: NextRequest): string {
   const forwardedFor = req.headers.get("x-forwarded-for")

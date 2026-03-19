@@ -1,7 +1,5 @@
-import { aggregateOpcodes } from "../aggregate"
-import { bucketizeOpcodeGas } from "../bucketize"
 import { FlameNode } from "../flame"
-import { parseTrace } from "../parser"
+import { createOpcodeAggregator } from "./opcodeAggregator"
 import { StructLog } from "../types"
 
 /**
@@ -11,8 +9,11 @@ import { StructLog } from "../types"
 export function buildOpcodeFlame(
   structLogs: StructLog[]
 ): FlameNode {
-  const callTree = parseTrace(structLogs)
-  const opcodeStats = aggregateOpcodes(callTree)
+  const aggregator = createOpcodeAggregator()
 
-  return bucketizeOpcodeGas(opcodeStats.gas)
+  for (const log of structLogs) {
+    aggregator.add(log)
+  }
+
+  return aggregator.finish()
 }

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { CallTracerFrame, StructLog } from "@/lib/types"
 import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
+import { createOpcodeAggregator } from "@/lib/traces/opcodeAggregator"
 import { buildCallFlame } from "@/lib/traces/callTrace"
 import { toErrorMessage } from "@/lib/errors"
+import { streamStructLogs } from "@/lib/rpc/streamStructLogs"
 
 type TraceMode = "opcode" | "calls"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
@@ -11,6 +13,7 @@ const RATE_LIMIT_MAX_REQUESTS = 12
 const RATE_LIMIT_MAX_KEYS = 1024
 const RPC_TIMEOUT_MS = 30_000
 const RPC_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+const RPC_MAX_STREAM_BYTES = 100 * 1024 * 1024
 
 const traceRateLimit = new Map<string, number[]>()
 
@@ -166,6 +169,99 @@ async function fetchRpcJson(
   return json as Record<string, unknown>
 }
 
+async function fetchRpcResponse(
+  rpcUrl: string,
+  payload: unknown
+): Promise<Response> {
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: getTimeoutSignal(RPC_TIMEOUT_MS),
+    })
+
+    if (!res.ok) {
+      throw new Error(`Trace RPC failed with status ${res.status}`)
+    }
+
+    return res
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError")
+    ) {
+      throw new Error("Trace RPC timed out")
+    }
+
+    throw err
+  }
+}
+
+async function buildOpcodeFlameFromRpc(
+  rpcUrl: string,
+  txHash: string
+): Promise<ReturnType<typeof buildOpcodeFlame>> {
+  const payload = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "debug_traceTransaction",
+    params: [txHash],
+  }
+
+  const res = await fetchRpcResponse(rpcUrl, payload)
+  const contentLength = res.headers.get("content-length")
+  if (contentLength) {
+    const bytes = Number.parseInt(contentLength, 10)
+    if (
+      Number.isFinite(bytes) &&
+      bytes > RPC_MAX_STREAM_BYTES
+    ) {
+      throw new Error("Trace response too large")
+    }
+  }
+
+  if (!res.body) {
+    throw new Error("Trace RPC returned no body")
+  }
+
+  const aggregator = createOpcodeAggregator()
+  let totalBytes = 0
+
+  const originalBody = res.body
+  const countingBody = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = originalBody.getReader()
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (!value) continue
+
+          totalBytes += value.byteLength
+          if (totalBytes > RPC_MAX_STREAM_BYTES) {
+            throw new Error("Trace response too large")
+          }
+
+          controller.enqueue(value)
+        }
+
+        controller.close()
+      } catch (err) {
+        controller.error(err)
+      } finally {
+        reader.releaseLock()
+      }
+    },
+  })
+
+  for await (const log of streamStructLogs(countingBody)) {
+    aggregator.add(log)
+  }
+
+  return aggregator.finish()
+}
+
 function getRpcErrorMessage(
   payload: Record<string, unknown>
 ): string | null {
@@ -263,29 +359,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ mode, root })
     }
 
-    // ─────────────────────────────────────────────
-    // structLogs-based traces (opcode)
-    // ─────────────────────────────────────────────
-    const payload = {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "debug_traceTransaction",
-      params: [normalizedTxHash],
-    }
-
-    const json = await fetchRpcJson(rpcUrl, payload)
-    const rpcError = getRpcErrorMessage(json)
-    if (rpcError) throw new Error(rpcError)
-
-    const structLogs: StructLog[] | undefined =
-      json.result?.structLogs
-
-    if (!structLogs) {
-      throw new Error("No structLogs returned")
-    }
-
     if (mode === "opcode") {
-      const root = buildOpcodeFlame(structLogs)
+      const root = await buildOpcodeFlameFromRpc(
+        rpcUrl,
+        normalizedTxHash
+      )
       return NextResponse.json({ mode, root })
     }
 

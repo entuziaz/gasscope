@@ -11,6 +11,9 @@ const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 export default function Home() {
   const [txHash, setTxHash] = useState("")
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    null
+  )
   const [opcodeRoot, setOpcodeRoot] =
     useState<FlameNode | null>(null)
   const [callRoot, setCallRoot] =
@@ -40,6 +43,7 @@ export default function Home() {
 
   async function loadTrace() {
     try {
+      setErrorMessage(null)
       const [opcode, calls, functions] =
         await Promise.all([
           fetchTrace("opcode"),
@@ -51,7 +55,7 @@ export default function Home() {
       setCallRoot(calls)
       setFunctionRoot(functions)
     } catch (err: unknown) {
-      alert(toErrorMessage(err))
+      setErrorMessage(toErrorMessage(err))
     }
   }
 
@@ -102,6 +106,14 @@ export default function Home() {
                 Trace Transaction
               </button>
             </div>
+            {errorMessage && (
+              <p className={styles.traceError} role="alert">
+                <span className={styles.traceErrorIcon} aria-hidden="true">
+                  🚫
+                </span>
+                {errorMessage}
+              </p>
+            )}
           </div>
         </section>
       ) : (
@@ -139,6 +151,14 @@ export default function Home() {
                 Trace Transaction
               </button>
             </div>
+            {errorMessage && (
+              <p className={styles.traceError} role="alert">
+                <span className={styles.traceErrorIcon} aria-hidden="true">
+                  🚫
+                </span>
+                {errorMessage}
+              </p>
+            )}
           </div>
         </section>
       )}

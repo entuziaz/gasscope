@@ -12,8 +12,18 @@ function toErrorMessage(err: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { txHash, mode }: { txHash?: string; mode?: TraceMode } =
-    await req.json()
+  let body: { txHash?: string; mode?: TraceMode }
+
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 }
+    )
+  }
+
+  const { txHash, mode } = body
 
   if (!txHash || typeof txHash !== "string") {
     return NextResponse.json(

@@ -106,6 +106,15 @@ function isRecord(
   return typeof value === "object" && value !== null
 }
 
+function parseJsonArray(value: string): unknown[] | null {
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 function parseExplorerAbiPayload(
   payload: unknown
 ): ExplorerAbiResult {
@@ -128,8 +137,11 @@ function parseExplorerAbiPayload(
   }
 
   if (isRecord(payload) && typeof payload.abi === "string") {
+    const parsedAbi = parseJsonArray(payload.abi)
+    if (!parsedAbi) return null
+
     return {
-      abi: JSON.parse(payload.abi),
+      abi: parsedAbi,
       contractName:
         typeof payload.contractName === "string"
           ? payload.contractName
@@ -149,8 +161,11 @@ function parseExplorerAbiPayload(
 
     const trimmed = payload.result.trim()
     if (trimmed.startsWith("[")) {
+      const parsedAbi = parseJsonArray(trimmed)
+      if (!parsedAbi) return null
+
       return {
-        abi: JSON.parse(trimmed),
+        abi: parsedAbi,
         contractName:
           typeof payload.contractName === "string"
             ? payload.contractName

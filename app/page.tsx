@@ -82,41 +82,43 @@ export default function Home() {
             </p>
           </div>
 
-          <div className={`${styles.tracePanel} ${styles.tracePanelEmpty}`}>
-            <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
-              <div className={styles.traceInputWrap}>
-                <label
-                  className={styles.traceLabel}
-                  htmlFor="txHash"
-                >
-                  Txn Hash
-                </label>
-                <input
-                  id="txHash"
-                  className={styles.traceInput}
-                  value={txHash}
-                  onChange={(e) => setTxHash(e.target.value)}
-                  placeholder="0x..."
-                  disabled={isLoading}
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                />
-              </div>
-              <button
-                className={styles.traceButton}
-                onClick={loadTrace}
-                disabled={!isValidTx || isLoading}
-                aria-busy={isLoading}
-              >
-                {isLoading && (
-                  <span
-                    className={styles.traceButtonSpinner}
-                    aria-hidden="true"
+          <div className={styles.tracePanelGroup}>
+            <div className={`${styles.tracePanel} ${styles.tracePanelEmpty}`}>
+              <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
+                <div className={styles.traceInputWrap}>
+                  <label
+                    className={styles.traceLabel}
+                    htmlFor="txHash"
+                  >
+                    Txn Hash
+                  </label>
+                  <input
+                    id="txHash"
+                    className={styles.traceInput}
+                    value={txHash}
+                    onChange={(e) => setTxHash(e.target.value)}
+                    placeholder="0x..."
+                    disabled={isLoading}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
                   />
-                )}
-                {isLoading ? "Tracing..." : "Trace Transaction"}
-              </button>
+                </div>
+                <button
+                  className={styles.traceButton}
+                  onClick={loadTrace}
+                  disabled={!isValidTx || isLoading}
+                  aria-busy={isLoading}
+                >
+                  {isLoading && (
+                    <span
+                      className={styles.traceButtonSpinner}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {isLoading ? "Tracing..." : "Trace Transaction"}
+                </button>
+              </div>
             </div>
             {errorMessage && (
               <p className={styles.traceError} role="alert">
@@ -135,41 +137,43 @@ export default function Home() {
             <h1>GasScope</h1>
           </div>
 
-          <div className={`${styles.tracePanel} ${styles.tracePanelResults}`}>
-            <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
-              <div className={styles.traceInputWrap}>
-                <label
-                  className={styles.traceLabel}
-                  htmlFor="txHash"
-                >
-                  Txn Hash
-                </label>
-                <input
-                  id="txHash"
-                  className={styles.traceInput}
-                  value={txHash}
-                  onChange={(e) => setTxHash(e.target.value)}
-                  placeholder="0x..."
-                  disabled={isLoading}
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                />
-              </div>
-              <button
-                className={styles.traceButton}
-                onClick={loadTrace}
-                disabled={!isValidTx || isLoading}
-                aria-busy={isLoading}
-              >
-                {isLoading && (
-                  <span
-                    className={styles.traceButtonSpinner}
-                    aria-hidden="true"
+          <div className={styles.tracePanelGroup}>
+            <div className={`${styles.tracePanel} ${styles.tracePanelResults}`}>
+              <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
+                <div className={styles.traceInputWrap}>
+                  <label
+                    className={styles.traceLabel}
+                    htmlFor="txHash"
+                  >
+                    Txn Hash
+                  </label>
+                  <input
+                    id="txHash"
+                    className={styles.traceInput}
+                    value={txHash}
+                    onChange={(e) => setTxHash(e.target.value)}
+                    placeholder="0x..."
+                    disabled={isLoading}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
                   />
-                )}
-                {isLoading ? "Tracing..." : "Trace Transaction"}
-              </button>
+                </div>
+                <button
+                  className={styles.traceButton}
+                  onClick={loadTrace}
+                  disabled={!isValidTx || isLoading}
+                  aria-busy={isLoading}
+                >
+                  {isLoading && (
+                    <span
+                      className={styles.traceButtonSpinner}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {isLoading ? "Tracing..." : "Trace Transaction"}
+                </button>
+              </div>
             </div>
             {errorMessage && (
               <p className={styles.traceError} role="alert">

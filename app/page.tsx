@@ -11,6 +11,7 @@ const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 export default function Home() {
   const [txHash, setTxHash] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(
     null
   )
@@ -43,6 +44,7 @@ export default function Home() {
 
   async function loadTrace() {
     try {
+      setIsLoading(true)
       setErrorMessage(null)
       const [opcode, calls, functions] =
         await Promise.all([
@@ -56,6 +58,8 @@ export default function Home() {
       setFunctionRoot(functions)
     } catch (err: unknown) {
       setErrorMessage(toErrorMessage(err))
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -93,6 +97,7 @@ export default function Home() {
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
                   placeholder="0x..."
+                  disabled={isLoading}
                   spellCheck={false}
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -101,9 +106,16 @@ export default function Home() {
               <button
                 className={styles.traceButton}
                 onClick={loadTrace}
-                disabled={!isValidTx}
+                disabled={!isValidTx || isLoading}
+                aria-busy={isLoading}
               >
-                Trace Transaction
+                {isLoading && (
+                  <span
+                    className={styles.traceButtonSpinner}
+                    aria-hidden="true"
+                  />
+                )}
+                {isLoading ? "Tracing..." : "Trace Transaction"}
               </button>
             </div>
             {errorMessage && (
@@ -138,6 +150,7 @@ export default function Home() {
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
                   placeholder="0x..."
+                  disabled={isLoading}
                   spellCheck={false}
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -146,9 +159,16 @@ export default function Home() {
               <button
                 className={styles.traceButton}
                 onClick={loadTrace}
-                disabled={!isValidTx}
+                disabled={!isValidTx || isLoading}
+                aria-busy={isLoading}
               >
-                Trace Transaction
+                {isLoading && (
+                  <span
+                    className={styles.traceButtonSpinner}
+                    aria-hidden="true"
+                  />
+                )}
+                {isLoading ? "Tracing..." : "Trace Transaction"}
               </button>
             </div>
             {errorMessage && (

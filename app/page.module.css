@@ -298,6 +298,10 @@
 }
 
 .traceButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   border: 0;
   border-radius: 999px;
   background: var(--accent);
@@ -316,6 +320,15 @@
     box-shadow 120ms ease,
     background 120ms ease,
     filter 120ms ease;
+}
+
+.traceButtonSpinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  border-top-color: #000000;
+  animation: traceButtonSpin 700ms linear infinite;
 }
 
 .heroPanelEmpty .traceButton {
@@ -400,6 +413,12 @@
   cursor: not-allowed;
   opacity: 0.55;
   box-shadow: none;
+}
+
+@keyframes traceButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .traceHint {

@@ -9,7 +9,7 @@
 
 GasScope is a transaction gas profiler for Rootstock. The goal is to make gas analysis less of a guess-and-check process by showing where gas is spent inside a traced transaction, in a form that is fast to inspect.
 
-Currently, the app exposes three complementary views from the same trace: opcode-level gas breakdown, external call frames, and an experimental function-attribution view.
+Currently, the app exposes two backend trace modes from the same transaction: opcode-level gas breakdown and external call frames. The UI also includes an experimental function-attribution card, but it is currently a placeholder derived locally and does not trigger an additional backend trace request.
 
 ## Requirements
 
@@ -66,4 +66,8 @@ Example response shape:
 
 - `opcode`: aggregated gas usage by opcode category
 - `calls`: external call tree from `callTracer`
-- `functions`: experimental Solidity-level attribution; accurate labels require verified source, compiler metadata, and sourcemaps
+
+## Notes
+
+- `opcode` mode is parsed server-side from streamed `structLogs` rather than loading the entire RPC JSON response into memory first.
+- The experimental Solidity-level function attribution card in the UI is currently a placeholder. Accurate labels still require verified source, compiler metadata, and sourcemaps.

@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { StructLog } from "@/lib/types"
 import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
 import { buildCallFlame } from "@/lib/traces/callTrace"
-import { buildFunctionFlame } from "@/lib/traces/functionTrace"
 import { toErrorMessage } from "@/lib/errors"
 
-type TraceMode = "opcode" | "calls" | "functions"
+type TraceMode = "opcode" | "calls"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX_REQUESTS = 12
@@ -108,7 +107,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (!mode || !["opcode", "calls", "functions"].includes(mode)) {
+  if (!mode || !["opcode", "calls"].includes(mode)) {
     return NextResponse.json(
       { error: `Invalid mode: ${mode}` },
       { status: 400 }
@@ -153,7 +152,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────────
-    // structLogs-based traces (opcode / functions)
+    // structLogs-based traces (opcode)
     // ─────────────────────────────────────────────
     const payload = {
       jsonrpc: "2.0",
@@ -180,11 +179,6 @@ export async function POST(req: NextRequest) {
 
     if (mode === "opcode") {
       const root = buildOpcodeFlame(structLogs)
-      return NextResponse.json({ mode, root })
-    }
-
-    if (mode === "functions") {
-      const root = buildFunctionFlame(structLogs)
       return NextResponse.json({ mode, root })
     }
 

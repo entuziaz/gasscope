@@ -4,7 +4,13 @@ import { CallTracerFrame } from "../types"
 
 function hexToNumber(hex?: string): number {
   if (!hex) return 0
-  return Number.parseInt(hex, 16)
+
+  const value = BigInt(hex)
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("gasUsed exceeds Number.MAX_SAFE_INTEGER")
+  }
+
+  return Number(value)
 }
 
 async function toFlameNode(

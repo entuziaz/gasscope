@@ -1,4 +1,3 @@
-import { StructLog } from "@/lib/types"
 import { FlameNode } from "@/lib/flame"
 
 /**
@@ -14,14 +13,7 @@ import { FlameNode } from "@/lib/flame"
  * This is intentionally stubbed.
  */
 
-export function buildFunctionFlame(
-  structLogs: StructLog[]
-): FlameNode {
-  const totalGas = structLogs.reduce(
-    (sum, l) => sum + (l.gasCost ?? 0),
-    0
-  )
-
+export function buildFunctionFlame(totalGas: number): FlameNode {
   return {
     name: "ROOT",
     value: totalGas,

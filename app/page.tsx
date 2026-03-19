@@ -4,9 +4,10 @@ import { useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
 import { FlameNode } from "@/lib/flame"
 import { toErrorMessage } from "@/lib/errors"
+import { buildFunctionFlame } from "@/lib/traces/functionTrace"
 import styles from "./page.module.css"
 
-type Mode = "opcode" | "calls" | "functions"
+type Mode = "opcode" | "calls"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 export default function Home() {
@@ -46,16 +47,12 @@ export default function Home() {
     try {
       setIsLoading(true)
       setErrorMessage(null)
-      const [opcode, calls, functions] =
-        await Promise.all([
-          fetchTrace("opcode"),
-          fetchTrace("calls"),
-          fetchTrace("functions"),
-        ])
+      const [opcode, calls] =
+        await Promise.all([fetchTrace("opcode"), fetchTrace("calls")])
 
       setOpcodeRoot(opcode)
       setCallRoot(calls)
-      setFunctionRoot(functions)
+      setFunctionRoot(buildFunctionFlame(opcode.value))
     } catch (err: unknown) {
       setErrorMessage(toErrorMessage(err))
     } finally {

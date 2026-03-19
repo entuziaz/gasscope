@@ -69,9 +69,9 @@ export function FlameGraph({
         <div
           className={styles.children}
         >
-          {node.children.map((child) => (
+          {node.children.map((child, index) => (
             <FlameGraph
-              key={`${depth + 1}-${child.name}`}
+              key={`${depth + 1}-${index}-${child.name}`}
               node={child}
               parentValue={node.value}
               depth={depth + 1}

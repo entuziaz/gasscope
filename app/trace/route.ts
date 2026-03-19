@@ -5,6 +5,7 @@ import { buildCallFlame } from "@/lib/traces/callTrace"
 import { buildFunctionFlame } from "@/lib/traces/functionTrace"
 
 type TraceMode = "opcode" | "calls" | "functions"
+const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Trace failed"
@@ -17,6 +18,15 @@ export async function POST(req: NextRequest) {
   if (!txHash || typeof txHash !== "string") {
     return NextResponse.json(
       { error: "txHash is required" },
+      { status: 400 }
+    )
+  }
+
+  const normalizedTxHash = txHash.trim()
+
+  if (!TX_HASH_PATTERN.test(normalizedTxHash)) {
+    return NextResponse.json(
+      { error: "Invalid txHash format" },
       { status: 400 }
     )
   }
@@ -41,7 +51,7 @@ export async function POST(req: NextRequest) {
         id: 1,
         method: "debug_traceTransaction",
         params: [
-          txHash,
+          normalizedTxHash,
           {
             tracer: "callTracer",
             tracerConfig: {
@@ -72,7 +82,7 @@ export async function POST(req: NextRequest) {
       jsonrpc: "2.0",
       id: 1,
       method: "debug_traceTransaction",
-      params: [txHash],
+      params: [normalizedTxHash],
     }
 
     const res = await fetch(rpcUrl, {

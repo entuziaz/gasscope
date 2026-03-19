@@ -6,6 +6,7 @@ import { FlameNode } from "@/lib/flame"
 import styles from "./page.module.css"
 
 type Mode = "opcode" | "calls" | "functions"
+const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Trace failed"
@@ -20,7 +21,7 @@ export default function Home() {
   const [functionRoot, setFunctionRoot] =
     useState<FlameNode | null>(null)
 
-  const isValidTx = txHash.trim().length > 0
+  const isValidTx = TX_HASH_PATTERN.test(txHash.trim())
   const hasNestedExternalCalls = Boolean(
     callRoot?.children && callRoot.children.length > 0
   )

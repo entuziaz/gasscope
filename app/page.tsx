@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
 import { FlameNode } from "@/lib/flame"
 import { toErrorMessage } from "@/lib/errors"
@@ -11,6 +11,7 @@ type Mode = "opcode" | "calls"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 export default function Home() {
+  const traceAbortRef = useRef<AbortController | null>(null)
   const [txHash, setTxHash] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(
@@ -31,11 +32,22 @@ export default function Home() {
     opcodeRoot || callRoot || functionRoot
   )
 
-  async function fetchTrace(mode: Mode) {
+  useEffect(() => {
+    return () => {
+      traceAbortRef.current?.abort()
+    }
+  }, [])
+
+  async function fetchTrace(
+    mode: Mode,
+    traceTxHash: string,
+    signal: AbortSignal
+  ) {
     const res = await fetch("/trace", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ txHash, mode }),
+      body: JSON.stringify({ txHash: traceTxHash, mode }),
+      signal,
     })
 
     const data = await res.json()
@@ -44,19 +56,38 @@ export default function Home() {
   }
 
   async function loadTrace() {
+    const traceTxHash = txHash.trim()
+    const controller = new AbortController()
+
+    traceAbortRef.current?.abort()
+    traceAbortRef.current = controller
+
     try {
       setIsLoading(true)
       setErrorMessage(null)
       const [opcode, calls] =
-        await Promise.all([fetchTrace("opcode"), fetchTrace("calls")])
+        await Promise.all([
+          fetchTrace("opcode", traceTxHash, controller.signal),
+          fetchTrace("calls", traceTxHash, controller.signal),
+        ])
 
       setOpcodeRoot(opcode)
       setCallRoot(calls)
       setFunctionRoot(buildFunctionFlame(opcode.value))
     } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        err.name === "AbortError"
+      ) {
+        return
+      }
+
       setErrorMessage(toErrorMessage(err))
     } finally {
-      setIsLoading(false)
+      if (traceAbortRef.current === controller) {
+        traceAbortRef.current = null
+        setIsLoading(false)
+      }
     }
   }
 

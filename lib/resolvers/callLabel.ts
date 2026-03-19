@@ -13,12 +13,31 @@ type CallLabelResolverOptions = {
   fetchImpl?: typeof fetch
 }
 
+const ABI_CACHE_MAX_ENTRIES = 512
+const FOUR_BYTE_CACHE_MAX_ENTRIES = 1024
+
 const abiCache = new Map<string, Promise<ExplorerAbiResult>>()
 const fourByteCache = new Map<string, Promise<string[] | null>>()
 
 export function resetCallLabelResolverCaches(): void {
   abiCache.clear()
   fourByteCache.clear()
+}
+
+function setBoundedCache<K, V>(
+  cache: Map<K, V>,
+  key: K,
+  value: V,
+  maxEntries: number
+): void {
+  if (!cache.has(key) && cache.size >= maxEntries) {
+    const oldestKey = cache.keys().next().value
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey)
+    }
+  }
+
+  cache.set(key, value)
 }
 
 function shortAddress(address?: string): string {
@@ -81,7 +100,10 @@ function getTimeoutSignal(ms: number): AbortSignal | undefined {
 function getExplorerUrl(address: string): string | null {
   const template = process.env.EXPLORER_API_URL_TEMPLATE
   if (template) {
-    return template.replace("{address}", address)
+    return template.replace(
+      "{address}",
+      encodeURIComponent(address)
+    )
   }
 
   const baseUrl = process.env.EXPLORER_API_URL
@@ -152,14 +174,12 @@ function parseExplorerAbiPayload(
   }
 
   if (isRecord(payload) && typeof payload.result === "string") {
-    if (
-      payload.result === "Contract source code not verified" ||
-      payload.result === "Contract source code not verified"
-    ) {
+    const trimmed = payload.result.trim()
+
+    if (trimmed.toLowerCase() === "contract source code not verified") {
       return null
     }
 
-    const trimmed = payload.result.trim()
     if (trimmed.startsWith("[")) {
       const parsedAbi = parseJsonArray(trimmed)
       if (!parsedAbi) return null
@@ -209,7 +229,12 @@ async function fetchExplorerAbi(
     return parseExplorerAbiPayload(payload)
   })().catch(() => null)
 
-  abiCache.set(normalized, job)
+  setBoundedCache(
+    abiCache,
+    normalized,
+    job,
+    ABI_CACHE_MAX_ENTRIES
+  )
   return job
 }
 
@@ -265,7 +290,12 @@ async function fetchFourByteSignatures(
     return signatures.length > 0 ? signatures : null
   })().catch(() => null)
 
-  fourByteCache.set(normalized, job)
+  setBoundedCache(
+    fourByteCache,
+    normalized,
+    job,
+    FOUR_BYTE_CACHE_MAX_ENTRIES
+  )
   return job
 }
 

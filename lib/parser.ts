@@ -127,11 +127,5 @@ export function parseTrace(structLogs: StructLog[]): CallFrame {
         prevLog = log
     }
 
-    if (stack.length !== 1) {
-        throw new Error(
-            `Unbalanced call stack at end of trace (depth=${stack.length})`
-        )
-    }
-
     return rootFrame
 }

@@ -95,7 +95,22 @@ describe("parseTrace", () => {
 
         expect(first.gasUsed).toBe(200)
         expect(second.gasUsed).toBe(300)
-        })
+    })
+
+    it("returns partial frames for traces that end with an open call stack", () => {
+        const structLogs: StructLog[] = [
+            { op: "CALL", depth: 0, gasCost: 700 },
+            { op: "SLOAD", depth: 1, gasCost: 100 },
+            { op: "SSTORE", depth: 1, gasCost: 200 },
+        ]
+
+        const root = parseTrace(structLogs)
+
+        expect(root.children.length).toBe(1)
+        expect(root.children[0].name).toBe("CALL")
+        expect(root.children[0].depth).toBe(1)
+        expect(root.children[0].gasUsed).toBe(300)
+    })
 
 
 })

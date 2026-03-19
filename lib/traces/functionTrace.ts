@@ -1,4 +1,4 @@
-import { FlameNode } from "@/lib/flame"
+import { FlameNode } from "../flame"
 
 /**
  * Solidity-level gas attribution using sourcemaps.

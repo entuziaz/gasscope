@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { StructLog } from "@/lib/types"
+import { CallTracerFrame, StructLog } from "@/lib/types"
 import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
 import { buildCallFlame } from "@/lib/traces/callTrace"
 import { toErrorMessage } from "@/lib/errors"
@@ -9,6 +9,8 @@ const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX_REQUESTS = 12
 const RATE_LIMIT_MAX_KEYS = 1024
+const RPC_TIMEOUT_MS = 30_000
+const RPC_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 
 const traceRateLimit = new Map<string, number[]>()
 
@@ -58,6 +60,119 @@ function consumeRateLimit(ip: string, now: number): boolean {
   recentTimestamps.push(now)
   traceRateLimit.set(ip, recentTimestamps)
   return true
+}
+
+function getTimeoutSignal(ms: number): AbortSignal | undefined {
+  if (
+    typeof AbortSignal !== "undefined" &&
+    typeof AbortSignal.timeout === "function"
+  ) {
+    return AbortSignal.timeout(ms)
+  }
+
+  return undefined
+}
+
+function isRecord(
+  value: unknown
+): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+async function readJsonWithLimit(
+  res: Response,
+  maxBytes: number
+): Promise<unknown> {
+  const contentLength = res.headers.get("content-length")
+  if (contentLength) {
+    const bytes = Number.parseInt(contentLength, 10)
+    if (Number.isFinite(bytes) && bytes > maxBytes) {
+      throw new Error("Trace response too large")
+    }
+  }
+
+  if (!res.body) {
+    return res.json()
+  }
+
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (!value) continue
+
+    totalBytes += value.byteLength
+    if (totalBytes > maxBytes) {
+      throw new Error("Trace response too large")
+    }
+
+    chunks.push(value)
+  }
+
+  const body = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  return JSON.parse(new TextDecoder().decode(body)) as unknown
+}
+
+async function fetchRpcJson(
+  rpcUrl: string,
+  payload: unknown
+): Promise<Record<string, unknown>> {
+  let res: Response
+
+  try {
+    res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: getTimeoutSignal(RPC_TIMEOUT_MS),
+    })
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError")
+    ) {
+      throw new Error("Trace RPC timed out")
+    }
+
+    throw err
+  }
+
+  if (!res.ok) {
+    throw new Error(`Trace RPC failed with status ${res.status}`)
+  }
+
+  const json = await readJsonWithLimit(
+    res,
+    RPC_MAX_RESPONSE_BYTES
+  )
+
+  if (
+    typeof json !== "object" ||
+    json === null ||
+    Array.isArray(json)
+  ) {
+    throw new Error("Trace RPC returned invalid JSON")
+  }
+
+  return json as Record<string, unknown>
+}
+
+function getRpcErrorMessage(
+  payload: Record<string, unknown>
+): string | null {
+  if (!isRecord(payload.error)) return null
+  return typeof payload.error.message === "string"
+    ? payload.error.message
+    : "Trace RPC returned an error"
 }
 
 export async function POST(req: NextRequest) {
@@ -138,16 +253,13 @@ export async function POST(req: NextRequest) {
         ],
       }
 
-      const res = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      const json = await fetchRpcJson(rpcUrl, payload)
+      const rpcError = getRpcErrorMessage(json)
+      if (rpcError) throw new Error(rpcError)
 
-      const json = await res.json()
-      if (json.error) throw new Error(json.error.message)
-
-      const root = await buildCallFlame(json.result)
+      const root = await buildCallFlame(
+        json.result as CallTracerFrame
+      )
       return NextResponse.json({ mode, root })
     }
 
@@ -161,14 +273,9 @@ export async function POST(req: NextRequest) {
       params: [normalizedTxHash],
     }
 
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-
-    const json = await res.json()
-    if (json.error) throw new Error(json.error.message)
+    const json = await fetchRpcJson(rpcUrl, payload)
+    const rpcError = getRpcErrorMessage(json)
+    if (rpcError) throw new Error(rpcError)
 
     const structLogs: StructLog[] | undefined =
       json.result?.structLogs

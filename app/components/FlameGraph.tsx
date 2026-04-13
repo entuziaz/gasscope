@@ -20,10 +20,10 @@ type FlatNode = {
 }
 
 const palettes = {
-  orange: ["#ff9100", "#ffb74d", "#ffd08a"],
-  pink: ["#ff71e1", "#ff9feb", "#ffc8f4"],
-  green: ["#79c600", "#9fde2f", "#c4ef75"],
-} as const
+  orange: { h: 34, s: 100 },
+  pink: { h: 313, s: 100 },
+  green: { h: 83, s: 100 }, 
+} as const;
 
 function formatPercent(value: number) {
   return value.toFixed(1)
@@ -113,13 +113,26 @@ function FlameGraphNode({
 
   const showLabel = widthPercent > 6
   const swatches = palettes[palette]
-  const swatch = swatches[Math.min(depth, swatches.length - 1)]
-  const borderColor = depth === 0 ? "#000000" : "rgba(0, 0, 0, 0.18)"
+  // const swatch = swatches[Math.min(depth, swatches.length - 1)]
+  // const borderColor = depth === 0 ? "#000000" : "rgba(0, 0, 0, 0.18)"
+
+
+  // Calculate color dynamically: 
+  // We start at 50% lightness and get lighter by 7% per depth level, 
+  // capping at 90% so text remains readable.
+  const theme = palettes[palette];
+  const lightness = Math.min(50 + depth * 7, 90);
+  const swatch = `hsl(${theme.h}, ${theme.s}%, ${lightness}%)`;
+
+  // Slightly darker border for deeper levels to maintain separation
+  const borderColor = depth === 0 ? "#000000" : `hsl(${theme.h}, ${theme.s}%, ${lightness - 10}%)`;
+
   const ariaLabel = `${node.name}, ${node.value.toLocaleString()} gas, ${percent}% of parent${isRoot ? ", root segment" : ""}`
   const tooltipId = useId()
   const titleText = showLabel
     ? `${node.name} — ${node.value.toLocaleString()} gas (${percent}%)`
     : undefined
+
 
   return (
     <div

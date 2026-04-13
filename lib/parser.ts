@@ -1,5 +1,18 @@
 import { OpcodeStats, CallFrame, StructLog } from "./types"
 
+/**
+ * Legacy non-streaming trace parser kept as a reference implementation.
+ *
+ * Production trace handling no longer imports this module. The live pipeline
+ * streams struct logs incrementally via `streamStructLogs` and aggregates them
+ * with `createOpcodeAggregator` in `app/trace/route.ts` to avoid loading the
+ * full trace into memory at once.
+ *
+ * This module remains useful for:
+ * - tests that exercise a simpler whole-array parser
+ * - comparing streaming behavior with an eager implementation
+ * - future tooling that intentionally operates on already-materialized logs
+ */
 
 function emptyOpcodeStats(): OpcodeStats {
   return {

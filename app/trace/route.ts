@@ -1,6 +1,6 @@
 import { isIP } from "node:net"
 import { NextRequest, NextResponse } from "next/server"
-import { CallTracerFrame, StructLog } from "@/lib/types"
+import { CallTracerFrame } from "@/lib/types"
 import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
 import { createOpcodeAggregator } from "@/lib/traces/opcodeAggregator"
 import { buildCallFlame } from "@/lib/traces/callTrace"
@@ -422,6 +422,9 @@ export async function POST(req: NextRequest) {
       const json = await fetchRpcJson(rpcUrl, payload)
       const rpcError = getRpcErrorMessage(json)
       if (rpcError) throw new Error(rpcError)
+      if (!isRecord(json.result)) {
+        throw new Error("Trace RPC returned an invalid call trace")
+      }
 
       const root = await buildCallFlame(
         json.result as CallTracerFrame

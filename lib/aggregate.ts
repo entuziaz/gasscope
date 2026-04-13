@@ -1,6 +1,15 @@
 import { CallFrame, OpcodeStats } from "./types"
 
 /**
+ * Legacy non-streaming opcode aggregation helper.
+ *
+ * Production code no longer imports this module. The shipped trace route uses
+ * the streaming opcode aggregator in `lib/traces/opcodeAggregator.ts` while it
+ * consumes struct logs from the RPC response.
+ *
+ * This implementation is retained as a reference for tests and for any future
+ * workflows that intentionally build a full in-memory call tree first.
+ *
  * Aggregate opcode statistics across the entire call tree.
  *
  * This is a PURE function:

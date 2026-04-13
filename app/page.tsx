@@ -108,8 +108,40 @@ export default function Home() {
       signal,
     })
 
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error)
+    let data: unknown = null
+
+    try {
+      data = await res.json()
+    } catch {
+      if (!res.ok) {
+        throw new Error(
+          res.statusText || `Trace request failed with status ${res.status}`
+        )
+      }
+
+      throw new Error("Trace response was not valid JSON")
+    }
+
+    if (!res.ok) {
+      const message =
+        typeof data === "object" &&
+        data !== null &&
+        "error" in data &&
+        typeof data.error === "string"
+          ? data.error
+          : res.statusText || `Trace request failed with status ${res.status}`
+
+      throw new Error(message)
+    }
+
+    if (
+      typeof data !== "object" ||
+      data === null ||
+      !("root" in data)
+    ) {
+      throw new Error("Trace response payload was invalid")
+    }
+
     return data.root as FlameNode
   }
 

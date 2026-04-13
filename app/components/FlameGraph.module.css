@@ -1,5 +1,27 @@
+.figure {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.caption {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(20, 20, 20, 0.88);
+}
+
+.graph {
+  display: block;
+}
+
 .node {
   min-height: 34px;
+  outline: none;
+  position: relative;
+}
+
+.node:focus-visible {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px #111111, 0 0 0 3px rgba(17, 17, 17, 0.18);
 }
 
 .label {
@@ -28,4 +50,53 @@
 .children {
   display: flex;
   border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.tableHeading {
+  margin: 0;
+  padding: 0.9rem 1rem 0;
+  font-size: 0.95rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.table th,
+.table td {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.table thead th {
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.68);
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

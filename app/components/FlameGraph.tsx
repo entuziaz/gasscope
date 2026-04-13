@@ -1,3 +1,6 @@
+"use client"
+
+import { KeyboardEvent, useId } from "react"
 import { FlameNode } from "@/lib/flame"
 import styles from "./FlameGraph.module.css"
 
@@ -8,31 +11,111 @@ type Props = {
   palette?: "orange" | "pink" | "green"
 }
 
+type FlatNode = {
+  depth: number
+  name: string
+  percentOfParent: string
+  percentOfRoot: string
+  value: number
+}
+
 const palettes = {
   orange: ["#ff9100", "#ffb74d", "#ffd08a"],
   pink: ["#ff71e1", "#ff9feb", "#ffc8f4"],
   green: ["#79c600", "#9fde2f", "#c4ef75"],
 } as const
 
-export function FlameGraph({
+function formatPercent(value: number) {
+  return value.toFixed(1)
+}
+
+function buildFlatNodes(
+  node: FlameNode,
+  rootValue: number,
+  parentValue = rootValue,
+  depth = 0
+): FlatNode[] {
+  const percentOfParent =
+    parentValue > 0 ? formatPercent((node.value / parentValue) * 100) : "0.0"
+  const percentOfRoot =
+    rootValue > 0 ? formatPercent((node.value / rootValue) * 100) : "0.0"
+
+  return [
+    {
+      depth,
+      name: node.name,
+      percentOfParent: depth === 0 ? "100.0" : percentOfParent,
+      percentOfRoot,
+      value: node.value,
+    },
+    ...(node.children?.flatMap((child) =>
+      buildFlatNodes(child, rootValue, node.value, depth + 1)
+    ) ?? []),
+  ]
+}
+
+function buildGraphLabel(node: FlameNode) {
+  const childCount = node.children?.length ?? 0
+  return `${node.name} flame graph with ${childCount} top-level segment${childCount === 1 ? "" : "s"} and ${node.value.toLocaleString()} gas total. Use Tab or arrow keys to inspect each segment, or review the data table below.`
+}
+
+function handleSegmentKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+  const current = event.currentTarget
+  const root = current.closest("[data-flame-root='true']")
+
+  if (!root) return
+
+  const segments = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-flame-segment='true']")
+  )
+  const currentIndex = segments.indexOf(current)
+
+  if (currentIndex === -1) return
+
+  const moveFocus = (nextIndex: number) => {
+    const target = segments[nextIndex]
+    if (!target) return
+    event.preventDefault()
+    target.focus()
+  }
+
+  if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    moveFocus(Math.min(currentIndex + 1, segments.length - 1))
+  }
+
+  if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    moveFocus(Math.max(currentIndex - 1, 0))
+  }
+
+  if (event.key === "Home") {
+    moveFocus(0)
+  }
+
+  if (event.key === "End") {
+    moveFocus(segments.length - 1)
+  }
+}
+
+function FlameGraphNode({
   node,
   parentValue,
   depth = 0,
   palette = "orange",
 }: Props) {
-  const base = parentValue ?? node.value   // ROOT uses itself
-  const widthPercent = Math.max((node.value / base) * 100, 0.4) 
+  const base = parentValue ?? node.value
+  const widthPercent =
+    base > 0 ? Math.max((node.value / base) * 100, 0.4) : 100
 
   const isRoot = depth === 0
   const percent = parentValue
-    ? ((node.value / parentValue) * 100).toFixed(1)
-    : "100"
+    ? formatPercent((node.value / parentValue) * 100)
+    : "100.0"
 
-  // Hide labels when too small
   const showLabel = widthPercent > 6
   const swatches = palettes[palette]
   const swatch = swatches[Math.min(depth, swatches.length - 1)]
   const borderColor = depth === 0 ? "#000000" : "rgba(0, 0, 0, 0.18)"
+  const ariaLabel = `${node.name}, ${node.value.toLocaleString()} gas, ${percent}% of parent${isRoot ? ", root segment" : ""}`
 
   return (
     <div
@@ -46,9 +129,12 @@ export function FlameGraph({
         lineHeight: 1.4,
       }}
       title={`${node.name} — ${node.value.toLocaleString()} gas (${percent}%)`}
+      aria-label={ariaLabel}
+      data-flame-segment="true"
+      onKeyDown={handleSegmentKeyDown}
+      tabIndex={0}
     >
-      {/* Label */}
-      {showLabel && (
+      {showLabel ? (
         <div
           className={`${styles.label} ${isRoot ? styles.labelRoot : styles.labelChild}`}
           style={{
@@ -62,15 +148,14 @@ export function FlameGraph({
           </span>
           <span className={styles.percent}> ({percent}%)</span>
         </div>
+      ) : (
+        <span className={styles.srOnly}>{ariaLabel}</span>
       )}
 
-      {/* Children */}
       {node.children && node.children.length > 0 && (
-        <div
-          className={styles.children}
-        >
+        <div className={styles.children}>
           {node.children.map((child, index) => (
-            <FlameGraph
+            <FlameGraphNode
               key={`${depth + 1}-${index}-${child.name}`}
               node={child}
               parentValue={node.value}
@@ -81,5 +166,66 @@ export function FlameGraph({
         </div>
       )}
     </div>
+  )
+}
+
+export function FlameGraph({ node, palette = "orange" }: Props) {
+  const labelId = useId()
+  const descriptionId = useId()
+  const tableId = useId()
+  const flatNodes = buildFlatNodes(node, node.value)
+
+  return (
+    <figure className={styles.figure}>
+      <figcaption id={labelId} className={styles.caption}>
+        {node.name} gas flame graph
+      </figcaption>
+
+      <p id={descriptionId} className={styles.srOnly}>
+        {buildGraphLabel(node)}
+      </p>
+
+      <div
+        aria-describedby={`${descriptionId} ${tableId}`}
+        aria-label={buildGraphLabel(node)}
+        aria-labelledby={labelId}
+        className={styles.graph}
+        data-flame-root="true"
+        role="img"
+      >
+        <FlameGraphNode node={node} palette={palette} />
+      </div>
+
+      <div className={styles.tableWrap}>
+        <h3 className={styles.tableHeading} id={tableId}>
+          Accessible flame graph data
+        </h3>
+        <table className={styles.table}>
+          <caption className={styles.srOnly}>
+            Gas usage by flame graph segment
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Segment</th>
+              <th scope="col">Depth</th>
+              <th scope="col">Gas</th>
+              <th scope="col">% of parent</th>
+              <th scope="col">% of total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {flatNodes.map((entry, index) => (
+              <tr key={`${entry.depth}-${entry.name}-${index}`}>
+                <th scope="row">{entry.name}</th>
+                <td>{entry.depth}</td>
+                <td>{entry.value.toLocaleString()}</td>
+                <td>{entry.percentOfParent}%</td>
+                <td>{entry.percentOfRoot}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </figure>
   )
 }

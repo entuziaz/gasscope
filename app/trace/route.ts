@@ -1,3 +1,4 @@
+import { isIP } from "node:net"
 import { NextRequest, NextResponse } from "next/server"
 import { CallTracerFrame, StructLog } from "@/lib/types"
 import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
@@ -14,17 +15,96 @@ const RATE_LIMIT_MAX_KEYS = 1024
 const RPC_TIMEOUT_MS = 30_000
 const RPC_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 const RPC_MAX_STREAM_BYTES = 100 * 1024 * 1024
+const UNTRUSTED_RATE_LIMIT_KEY = "untrusted-client"
 
 const traceRateLimit = new Map<string, number[]>()
 
-function getClientIp(req: NextRequest): string {
-  const forwardedFor = req.headers.get("x-forwarded-for")
-  if (forwardedFor) {
-    const firstIp = forwardedFor.split(",")[0]?.trim()
-    if (firstIp) return firstIp
+function normalizeIp(rawIp: string | null | undefined): string | null {
+  if (!rawIp) return null
+
+  const trimmed = rawIp.trim()
+  if (!trimmed) return null
+
+  const withoutBrackets =
+    trimmed.startsWith("[") && trimmed.endsWith("]")
+      ? trimmed.slice(1, -1)
+      : trimmed
+  const normalized = withoutBrackets.startsWith("::ffff:")
+    ? withoutBrackets.slice(7)
+    : withoutBrackets
+
+  return isIP(normalized) ? normalized : null
+}
+
+function parseForwardedChain(headerValue: string | null): string[] {
+  if (!headerValue) return []
+
+  return headerValue
+    .split(",")
+    .map((part) => normalizeIp(part))
+    .filter((ip): ip is string => ip !== null)
+}
+
+function getTrustedProxyIps(): Set<string> {
+  return new Set(
+    (process.env.TRUSTED_PROXY_IPS ?? "")
+      .split(",")
+      .map((value) => normalizeIp(value))
+      .filter((ip): ip is string => ip !== null)
+  )
+}
+
+function getRuntimeRequestIp(req: NextRequest): string | null {
+  const requestWithIp = req as NextRequest & {
+    ip?: string
   }
 
-  return "unknown"
+  return normalizeIp(requestWithIp.ip)
+}
+
+function getTrustedForwardedClientIp(
+  req: NextRequest,
+  peerIp: string
+): string | null {
+  if (process.env.TRUST_PROXY_HEADERS !== "true") {
+    return null
+  }
+
+  const trustedProxies = getTrustedProxyIps()
+  if (!trustedProxies.has(peerIp)) {
+    return null
+  }
+
+  const forwardedChain = parseForwardedChain(
+    req.headers.get("x-forwarded-for")
+  )
+
+  if (forwardedChain.length === 0) {
+    return null
+  }
+
+  for (let index = forwardedChain.length - 1; index >= 0; index -= 1) {
+    const candidateIp = forwardedChain[index]
+    if (!trustedProxies.has(candidateIp)) {
+      return candidateIp
+    }
+  }
+
+  return null
+}
+
+function getRateLimitKey(req: NextRequest): string {
+  const peerIp = getRuntimeRequestIp(req)
+  if (!peerIp) {
+    return UNTRUSTED_RATE_LIMIT_KEY
+  }
+
+  const forwardedClientIp = getTrustedForwardedClientIp(
+    req,
+    peerIp
+  )
+
+  return forwardedClientIp ?? peerIp
 }
 
 function pruneRateLimitStore(now: number): void {
@@ -273,7 +353,7 @@ function getRpcErrorMessage(
 
 export async function POST(req: NextRequest) {
   const now = Date.now()
-  const clientIp = getClientIp(req)
+  const clientIp = getRateLimitKey(req)
 
   if (!consumeRateLimit(clientIp, now)) {
     return NextResponse.json(

@@ -135,8 +135,10 @@ function FlameGraphNode({
       title={titleText}
       aria-label={ariaLabel}
       aria-describedby={!showLabel ? tooltipId : undefined}
+      aria-roledescription="flame graph segment"
       data-flame-segment="true"
       onKeyDown={handleSegmentKeyDown}
+      role="group"
       tabIndex={0}
     >
       {showLabel ? (

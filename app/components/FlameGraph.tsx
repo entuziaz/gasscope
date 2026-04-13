@@ -116,6 +116,10 @@ function FlameGraphNode({
   const swatch = swatches[Math.min(depth, swatches.length - 1)]
   const borderColor = depth === 0 ? "#000000" : "rgba(0, 0, 0, 0.18)"
   const ariaLabel = `${node.name}, ${node.value.toLocaleString()} gas, ${percent}% of parent${isRoot ? ", root segment" : ""}`
+  const tooltipId = useId()
+  const titleText = showLabel
+    ? `${node.name} — ${node.value.toLocaleString()} gas (${percent}%)`
+    : undefined
 
   return (
     <div
@@ -128,8 +132,9 @@ function FlameGraphNode({
         fontSize: 12,
         lineHeight: 1.4,
       }}
-      title={`${node.name} — ${node.value.toLocaleString()} gas (${percent}%)`}
+      title={titleText}
       aria-label={ariaLabel}
+      aria-describedby={!showLabel ? tooltipId : undefined}
       data-flame-segment="true"
       onKeyDown={handleSegmentKeyDown}
       tabIndex={0}
@@ -149,7 +154,20 @@ function FlameGraphNode({
           <span className={styles.percent}> ({percent}%)</span>
         </div>
       ) : (
-        <span className={styles.srOnly}>{ariaLabel}</span>
+        <>
+          <span className={styles.srOnly}>{ariaLabel}</span>
+          <span
+            className={styles.segmentTooltip}
+            id={tooltipId}
+            role="tooltip"
+          >
+            {node.name}
+            <span className={styles.tooltipMeta}>
+              {" "}
+              {node.value.toLocaleString()} gas ({percent}%)
+            </span>
+          </span>
+        </>
       )}
 
       {node.children && node.children.length > 0 && (
@@ -174,6 +192,36 @@ export function FlameGraph({ node, palette = "orange" }: Props) {
   const descriptionId = useId()
   const tableId = useId()
   const flatNodes = buildFlatNodes(node, node.value)
+  const shouldCollapseTable = flatNodes.length > 5
+  const tableMarkup = (
+    <table className={styles.table}>
+      <caption className={styles.srOnly}>
+        Gas usage by flame graph segment
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Segment</th>
+          <th scope="col">Depth</th>
+          <th scope="col">Gas</th>
+          <th scope="col">% of parent</th>
+          <th scope="col">% of total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {flatNodes.map((entry, index) => (
+          <tr key={`${entry.depth}-${entry.name}-${index}`}>
+            <th data-label="Segment" scope="row">
+              {entry.name}
+            </th>
+            <td data-label="Depth">{entry.depth}</td>
+            <td data-label="Gas">{entry.value.toLocaleString()}</td>
+            <td data-label="% of parent">{entry.percentOfParent}%</td>
+            <td data-label="% of total">{entry.percentOfRoot}%</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
 
   return (
     <figure className={styles.figure}>
@@ -196,36 +244,21 @@ export function FlameGraph({ node, palette = "orange" }: Props) {
         <FlameGraphNode node={node} palette={palette} />
       </div>
 
-      <div className={styles.tableWrap}>
-        <h3 className={styles.tableHeading} id={tableId}>
-          Accessible flame graph data
-        </h3>
-        <table className={styles.table}>
-          <caption className={styles.srOnly}>
-            Gas usage by flame graph segment
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Segment</th>
-              <th scope="col">Depth</th>
-              <th scope="col">Gas</th>
-              <th scope="col">% of parent</th>
-              <th scope="col">% of total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {flatNodes.map((entry, index) => (
-              <tr key={`${entry.depth}-${entry.name}-${index}`}>
-                <th scope="row">{entry.name}</th>
-                <td>{entry.depth}</td>
-                <td>{entry.value.toLocaleString()}</td>
-                <td>{entry.percentOfParent}%</td>
-                <td>{entry.percentOfRoot}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {shouldCollapseTable ? (
+        <details className={styles.tableDisclosure}>
+          <summary className={styles.tableSummary} id={tableId}>
+            Accessible flame graph data ({flatNodes.length} rows)
+          </summary>
+          <div className={styles.tableWrap}>{tableMarkup}</div>
+        </details>
+      ) : (
+        <div className={styles.tableSection}>
+          <h3 className={styles.tableHeading} id={tableId}>
+            Accessible flame graph data
+          </h3>
+          <div className={styles.tableWrap}>{tableMarkup}</div>
+        </div>
+      )}
     </figure>
   )
 }

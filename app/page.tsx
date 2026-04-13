@@ -1,14 +1,70 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { FormEvent, useEffect, useRef, useState } from "react"
 import { FlameGraph } from "./components/FlameGraph"
 import { FlameNode } from "@/lib/flame"
 import { toErrorMessage } from "@/lib/errors"
-import { buildFunctionFlame } from "@/lib/traces/functionTrace"
 import styles from "./page.module.css"
 
 type Mode = "opcode" | "calls"
 const TX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
+
+type TraceFormProps = {
+  isLoading: boolean
+  isValidTx: boolean
+  txHash: string
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onTxHashChange: (value: string) => void
+}
+
+function TraceForm({
+  isLoading,
+  isValidTx,
+  txHash,
+  onSubmit,
+  onTxHashChange,
+}: TraceFormProps) {
+  return (
+    <form
+      className={`${styles.traceActions} ${styles.traceActionsInline}`}
+      onSubmit={onSubmit}
+    >
+      <div className={styles.traceInputWrap}>
+        <label
+          className={styles.traceLabel}
+          htmlFor="txHash"
+        >
+          Txn Hash
+        </label>
+        <input
+          id="txHash"
+          className={styles.traceInput}
+          value={txHash}
+          onChange={(e) => onTxHashChange(e.target.value)}
+          placeholder="0x..."
+          disabled={isLoading}
+          spellCheck={false}
+          autoCapitalize="off"
+          autoCorrect="off"
+        />
+      </div>
+      <button
+        className={styles.traceButton}
+        type="submit"
+        disabled={!isValidTx || isLoading}
+        aria-busy={isLoading}
+      >
+        {isLoading && (
+          <span
+            className={styles.traceButtonSpinner}
+            aria-hidden="true"
+          />
+        )}
+        {isLoading ? "Tracing..." : "Trace Transaction"}
+      </button>
+    </form>
+  )
+}
 
 export default function Home() {
   const traceAbortRef = useRef<AbortController | null>(null)
@@ -21,16 +77,18 @@ export default function Home() {
     useState<FlameNode | null>(null)
   const [callRoot, setCallRoot] =
     useState<FlameNode | null>(null)
-  const [functionRoot, setFunctionRoot] =
-    useState<FlameNode | null>(null)
+  const [opcodeError, setOpcodeError] = useState<string | null>(
+    null
+  )
+  const [callError, setCallError] = useState<string | null>(
+    null
+  )
 
   const isValidTx = TX_HASH_PATTERN.test(txHash.trim())
   const hasNestedExternalCalls = Boolean(
     callRoot?.children && callRoot.children.length > 0
   )
-  const hasResults = Boolean(
-    opcodeRoot || callRoot || functionRoot
-  )
+  const hasResults = Boolean(opcodeRoot || callRoot)
 
   useEffect(() => {
     return () => {
@@ -65,15 +123,49 @@ export default function Home() {
     try {
       setIsLoading(true)
       setErrorMessage(null)
-      const [opcode, calls] =
-        await Promise.all([
+      setOpcodeError(null)
+      setCallError(null)
+
+      const [opcodeResult, callResult] =
+        await Promise.allSettled([
           fetchTrace("opcode", traceTxHash, controller.signal),
           fetchTrace("calls", traceTxHash, controller.signal),
         ])
 
-      setOpcodeRoot(opcode)
-      setCallRoot(calls)
-      setFunctionRoot(buildFunctionFlame(opcode.value))
+      const didAbort =
+        (opcodeResult.status === "rejected" &&
+          opcodeResult.reason instanceof Error &&
+          opcodeResult.reason.name === "AbortError") ||
+        (callResult.status === "rejected" &&
+          callResult.reason instanceof Error &&
+          callResult.reason.name === "AbortError")
+
+      if (didAbort) {
+        return
+      }
+
+      if (opcodeResult.status === "fulfilled") {
+        setOpcodeRoot(opcodeResult.value)
+      } else {
+        setOpcodeRoot(null)
+        setOpcodeError(toErrorMessage(opcodeResult.reason))
+      }
+
+      if (callResult.status === "fulfilled") {
+        setCallRoot(callResult.value)
+      } else {
+        setCallRoot(null)
+        setCallError(toErrorMessage(callResult.reason))
+      }
+
+      if (
+        opcodeResult.status === "rejected" &&
+        callResult.status === "rejected"
+      ) {
+        setErrorMessage(
+          "Trace request failed for both opcode and external call views. Check the per-view errors below."
+        )
+      }
     } catch (err: unknown) {
       if (
         err instanceof Error &&
@@ -89,6 +181,15 @@ export default function Home() {
         setIsLoading(false)
       }
     }
+  }
+
+  function handleTraceSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!isValidTx || isLoading) {
+      return
+    }
+
+    void loadTrace()
   }
 
   return (
@@ -112,41 +213,13 @@ export default function Home() {
 
           <div className={styles.tracePanelGroup}>
             <div className={`${styles.tracePanel} ${styles.tracePanelEmpty}`}>
-              <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
-                <div className={styles.traceInputWrap}>
-                  <label
-                    className={styles.traceLabel}
-                    htmlFor="txHash"
-                  >
-                    Txn Hash
-                  </label>
-                  <input
-                    id="txHash"
-                    className={styles.traceInput}
-                    value={txHash}
-                    onChange={(e) => setTxHash(e.target.value)}
-                    placeholder="0x..."
-                    disabled={isLoading}
-                    spellCheck={false}
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                  />
-                </div>
-                <button
-                  className={styles.traceButton}
-                  onClick={loadTrace}
-                  disabled={!isValidTx || isLoading}
-                  aria-busy={isLoading}
-                >
-                  {isLoading && (
-                    <span
-                      className={styles.traceButtonSpinner}
-                      aria-hidden="true"
-                    />
-                  )}
-                  {isLoading ? "Tracing..." : "Trace Transaction"}
-                </button>
-              </div>
+              <TraceForm
+                isLoading={isLoading}
+                isValidTx={isValidTx}
+                txHash={txHash}
+                onSubmit={handleTraceSubmit}
+                onTxHashChange={setTxHash}
+              />
             </div>
             {errorMessage && (
               <p className={styles.traceError} role="alert">
@@ -167,41 +240,13 @@ export default function Home() {
 
           <div className={styles.tracePanelGroup}>
             <div className={`${styles.tracePanel} ${styles.tracePanelResults}`}>
-              <div className={`${styles.traceActions} ${styles.traceActionsInline}`}>
-                <div className={styles.traceInputWrap}>
-                  <label
-                    className={styles.traceLabel}
-                    htmlFor="txHash"
-                  >
-                    Txn Hash
-                  </label>
-                  <input
-                    id="txHash"
-                    className={styles.traceInput}
-                    value={txHash}
-                    onChange={(e) => setTxHash(e.target.value)}
-                    placeholder="0x..."
-                    disabled={isLoading}
-                    spellCheck={false}
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                  />
-                </div>
-                <button
-                  className={styles.traceButton}
-                  onClick={loadTrace}
-                  disabled={!isValidTx || isLoading}
-                  aria-busy={isLoading}
-                >
-                  {isLoading && (
-                    <span
-                      className={styles.traceButtonSpinner}
-                      aria-hidden="true"
-                    />
-                  )}
-                  {isLoading ? "Tracing..." : "Trace Transaction"}
-                </button>
-              </div>
+              <TraceForm
+                isLoading={isLoading}
+                isValidTx={isValidTx}
+                txHash={txHash}
+                onSubmit={handleTraceSubmit}
+                onTxHashChange={setTxHash}
+              />
             </div>
             {errorMessage && (
               <p className={styles.traceError} role="alert">
@@ -238,6 +283,25 @@ export default function Home() {
           </article>
         )}
 
+        {!opcodeRoot && opcodeError && (
+          <article className={styles.resultCard}>
+            <div className={styles.sectionHead}>
+              <div>
+                <p className={styles.sectionKicker}>Low-Level View</p>
+                <h2>Opcode Gas Breakdown</h2>
+              </div>
+            </div>
+            <p className={styles.sectionCopy}>
+              Aggregated gas distribution by opcode category.
+              This highlights low-level gas sinks, not Solidity
+              function boundaries.
+            </p>
+            <p className={styles.sectionError} role="alert">
+              Opcode trace unavailable: {opcodeError}
+            </p>
+          </article>
+        )}
+
         {callRoot && (
           <article className={styles.resultCard}>
             <div className={styles.sectionHead}>
@@ -267,27 +331,22 @@ export default function Home() {
           </article>
         )}
 
-        {functionRoot && (
-          <article className={`${styles.resultCard} ${styles.experimentalCard}`}>
+        {!callRoot && callError && (
+          <article className={styles.resultCard}>
             <div className={styles.sectionHead}>
               <div>
-                <p className={styles.sectionKicker}>Experimental</p>
-                <h2>Solidity Function Attribution</h2>
+                <p className={styles.sectionKicker}>Execution Frames</p>
+                <h2>External Call Tree</h2>
               </div>
-              <span className={styles.statusPill}>Needs metadata</span>
             </div>
             <p className={styles.sectionCopy}>
-              Unavailable for this transaction because the app
-              only has EVM execution traces. Solidity-level
-              attribution needs verified source, compiler
-              metadata, and sourcemaps.
+              Labels are resolved in this order: verified ABI,
+              4-byte signature lookup, then raw address and
+              selector fallback.
             </p>
-            <div className={styles.flameWrap}>
-              <FlameGraph
-                node={functionRoot}
-                palette="green"
-              />
-            </div>
+            <p className={styles.sectionError} role="alert">
+              External call trace unavailable: {callError}
+            </p>
           </article>
         )}
       </section>

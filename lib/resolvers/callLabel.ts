@@ -3,6 +3,7 @@ import {
   CallTracerFrame,
   ResolvedCallLabel,
 } from "../types"
+import { getTimeoutSignal, isRecord } from "../runtime"
 
 type ExplorerAbiResult = {
   abi: unknown[]
@@ -86,17 +87,6 @@ function getFetchImpl(fetchImpl?: typeof fetch): typeof fetch | null {
   return null
 }
 
-function getTimeoutSignal(ms: number): AbortSignal | undefined {
-  if (
-    typeof AbortSignal !== "undefined" &&
-    typeof AbortSignal.timeout === "function"
-  ) {
-    return AbortSignal.timeout(ms)
-  }
-
-  return undefined
-}
-
 function getExplorerUrl(address: string): string | null {
   const template = process.env.EXPLORER_API_URL_TEMPLATE
   if (template) {
@@ -120,12 +110,6 @@ function getExplorerUrl(address: string): string | null {
   }
 
   return url.toString()
-}
-
-function isRecord(
-  value: unknown
-): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
 }
 
 function parseJsonArray(value: string): unknown[] | null {

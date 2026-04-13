@@ -5,6 +5,7 @@ import { buildOpcodeFlame } from "@/lib/traces/opcodeTrace"
 import { createOpcodeAggregator } from "@/lib/traces/opcodeAggregator"
 import { buildCallFlame } from "@/lib/traces/callTrace"
 import { toErrorMessage } from "@/lib/errors"
+import { getTimeoutSignal, isRecord } from "@/lib/runtime"
 import { streamStructLogs } from "@/lib/rpc/streamStructLogs"
 
 type TraceMode = "opcode" | "calls"
@@ -17,6 +18,12 @@ const RPC_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 const RPC_MAX_STREAM_BYTES = 100 * 1024 * 1024
 const UNTRUSTED_RATE_LIMIT_KEY = "untrusted-client"
 
+// NOTE: 
+// Rate limiter assumes single instance. Each Node worker or serverless
+// instance keeps its own Map, so limits are not enforced globally across a
+// scaled deployment and reset on restart/cold start. 
+// For production, prefer a shared external store (for example Redis/Upstash) 
+// or platform-level rate limiting in front of this route.
 const traceRateLimit = new Map<string, number[]>()
 
 function normalizeIp(rawIp: string | null | undefined): string | null {
@@ -143,23 +150,6 @@ function consumeRateLimit(ip: string, now: number): boolean {
   recentTimestamps.push(now)
   traceRateLimit.set(ip, recentTimestamps)
   return true
-}
-
-function getTimeoutSignal(ms: number): AbortSignal | undefined {
-  if (
-    typeof AbortSignal !== "undefined" &&
-    typeof AbortSignal.timeout === "function"
-  ) {
-    return AbortSignal.timeout(ms)
-  }
-
-  return undefined
-}
-
-function isRecord(
-  value: unknown
-): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
 }
 
 async function readJsonWithLimit(

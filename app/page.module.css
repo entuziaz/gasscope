@@ -584,6 +584,18 @@
   border: 1px solid rgba(255, 145, 0, 0.18);
 }
 
+.sectionError {
+  max-width: 60rem;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(216, 14, 7, 0.08);
+  border: 1px solid rgba(255, 49, 42, 0.18);
+  color: #b31d17;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
 .statusPill {
   border-radius: 999px;
   background: rgba(121, 198, 0, 0.12);
